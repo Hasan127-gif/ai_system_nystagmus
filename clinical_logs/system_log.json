@@ -1,0 +1,462 @@
+[
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "0ff673ca-e641-4112-8518-b01718630aaa",
+    "timestamp": "2025-05-30T11:54:36.333103",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T11:54:36.605182",
+    "analysis_id": "0ff673ca-e641-4112-8518-b01718630aaa",
+    "doctor_id": "b35cbef67d9cc425",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "e917a2da-3b83-4e72-a2cd-8cd6a7b70ed8",
+    "timestamp": "2025-05-30T11:54:55.546205",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T11:54:55.849226",
+    "analysis_id": "e917a2da-3b83-4e72-a2cd-8cd6a7b70ed8",
+    "doctor_id": "b35cbef67d9cc425",
+    "approval_status": "approved",
+    "notes": "Onaylandı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "03fbd234-ee4a-4899-8aa3-c083335e1921",
+    "timestamp": "2025-05-30T12:03:22.142604",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T12:03:22.404091",
+    "analysis_id": "03fbd234-ee4a-4899-8aa3-c083335e1921",
+    "doctor_id": "d91156e8b4d1c859",
+    "approval_status": "approved",
+    "notes": "Test onayı - sistem düzeltme",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T12:03:22.410336",
+    "analysis_id": "test_cli_ui_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "CLI test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "a0ca08d5-7f34-4262-a2ef-3247207394fc",
+    "timestamp": "2025-05-30T12:03:22.444700",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T12:03:22.445025",
+    "analysis_id": "a0ca08d5-7f34-4262-a2ef-3247207394fc",
+    "doctor_id": "b35cbef67d9cc425",
+    "approval_status": "approved",
+    "notes": "Entegrasyon testi - Patoloji onaylandı (düzeltilmiş)",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "70f4e15b-f4b4-4293-a1fb-30ef13738b00",
+    "timestamp": "2025-05-30T12:06:59.668186",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T12:06:59.925855",
+    "analysis_id": "70f4e15b-f4b4-4293-a1fb-30ef13738b00",
+    "doctor_id": "b35cbef67d9cc425",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "16c8fb87-de8f-412c-b832-19e16b5c8fb8",
+    "timestamp": "2025-05-30T12:09:37.904060",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T12:09:38.282019",
+    "analysis_id": "16c8fb87-de8f-412c-b832-19e16b5c8fb8",
+    "doctor_id": "d91156e8b4d1c859",
+    "approval_status": "approved",
+    "notes": "Stabil test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T12:09:38.283796",
+    "analysis_id": "stable_ui_001",
+    "doctor_id": "0fde1f64f705dc82",
+    "approval_status": "approved",
+    "notes": "CLI stabil test",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "def537c4-d866-4605-96aa-f150064f5194",
+    "timestamp": "2025-05-30T12:09:38.315773",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T12:09:38.316339",
+    "analysis_id": "def537c4-d866-4605-96aa-f150064f5194",
+    "doctor_id": "b35cbef67d9cc425",
+    "approval_status": "approved",
+    "notes": "Stabil entegrasyon onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "10137b52-4f74-4e3d-9eef-61a30e6bfe63",
+    "timestamp": "2025-05-30T13:08:59.802346",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T13:08:59.804376",
+    "analysis_id": "ui_test_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "4256ce09-ed5f-4739-b4ee-e75a2220ac7e",
+    "timestamp": "2025-05-30T13:12:23.970735",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T13:12:23.977963",
+    "analysis_id": "ui_test_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "88d825f4-7131-494b-b5ed-1d7c184e5a54",
+    "timestamp": "2025-05-30T13:13:36.255952",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T13:13:36.272770",
+    "analysis_id": "ui_test_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "a545b824-5f05-4fe6-b0fa-bc132858939e",
+    "timestamp": "2025-05-30T13:41:36.061862",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T13:41:36.080022",
+    "analysis_id": "ui_test_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "d3020d1f-36a1-41e2-8fc8-42282175ba27",
+    "timestamp": "2025-05-30T13:47:34.411644",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T13:47:34.429198",
+    "analysis_id": "ui_test_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "70074d31-5d6d-4be1-997d-f80c60d64fec",
+    "timestamp": "2025-05-30T13:51:46.635586",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T13:51:46.655707",
+    "analysis_id": "ui_test_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "4d253386-47f4-41de-b951-4a3e6d42e3cc",
+    "timestamp": "2025-05-30T13:58:50.867777",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T13:58:50.887635",
+    "analysis_id": "ui_test_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "d0974316-162b-4892-9718-dce17c2b33c4",
+    "timestamp": "2025-05-30T14:02:15.478348",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T14:02:15.497195",
+    "analysis_id": "ui_test_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "646f5218-3b0f-4e62-8682-c470182f075c",
+    "timestamp": "2025-05-30T14:15:22.323841",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T14:15:22.344191",
+    "analysis_id": "ui_test_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  },
+  {
+    "event_type": "analysis_completed",
+    "analysis_id": "55d927a4-8584-45c5-be17-bfc51f53c35d",
+    "timestamp": "2025-05-30T14:21:57.733216",
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "calibration_status": {
+      "ratio": 0.008320502943378437,
+      "calibrated": true
+    },
+    "thresholds": {
+      "nystagmus_hz": 2.0,
+      "strabismus_deg": 3.0
+    },
+    "performance_metrics": {},
+    "compliance_check": "passed"
+  },
+  {
+    "event_type": "doctor_approval",
+    "timestamp": "2025-05-30T14:21:57.747548",
+    "analysis_id": "ui_test_001",
+    "doctor_id": "ceb41abc92729065",
+    "approval_status": "approved",
+    "notes": "Test onayı",
+    "compliance_logged": true
+  }
+]

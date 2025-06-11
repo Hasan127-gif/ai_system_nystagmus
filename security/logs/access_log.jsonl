@@ -1,0 +1,13 @@
+{"zaman": "2025-04-29T11:55:27.747464", "kullanici_id": "doktor123", "kaynak_turu": "hasta_verileri", "islem_turu": "okuma", "izin_verildi": true, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.747796", "kullanici_id": "doktor123", "kaynak_turu": "hasta_verileri", "islem_turu": "silme", "izin_verildi": false, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.747859", "kullanici_id": "yonetici456", "kaynak_turu": "sistem_ayarlari", "islem_turu": "yazma", "izin_verildi": true, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.747935", "kullanici_id": "hasta789", "kaynak_turu": "hasta_verileri", "islem_turu": "okuma", "izin_verildi": true, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.748089", "kullanici_id": "hasta789", "kaynak_turu": "hasta_verileri", "islem_turu": "okuma", "izin_verildi": true, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.748196", "kullanici_id": "arastirmaci321", "kaynak_turu": "hasta_verileri", "islem_turu": "yazma", "izin_verildi": false, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.748847", "kullanici_id": "doktor123", "kaynak_turu": "hasta_verileri", "islem_turu": "yazma", "izin_verildi": true, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.749003", "kullanici_id": "doktor123", "kaynak_turu": "test_sifrelemesiz", "islem_turu": "yazma", "izin_verildi": false, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.749145", "kullanici_id": "doktor123", "kaynak_turu": "test_anonim", "islem_turu": "yazma", "izin_verildi": false, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.749220", "kullanici_id": "doktor123", "kaynak_turu": "hasta_verileri", "islem_turu": "okuma", "izin_verildi": true, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.749284", "kullanici_id": "teknisyen456", "kaynak_turu": "hasta_verileri", "islem_turu": "silme", "izin_verildi": false, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.749346", "kullanici_id": "hasta12345", "kaynak_turu": "hasta_verileri", "islem_turu": "okuma", "izin_verildi": true, "ip_adresi": "127.0.0.1"}
+{"zaman": "2025-04-29T11:55:27.749391", "kullanici_id": "hasta12345", "kaynak_turu": "hasta_verileri", "islem_turu": "okuma", "izin_verildi": true, "ip_adresi": "127.0.0.1"}

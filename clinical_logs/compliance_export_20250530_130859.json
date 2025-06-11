@@ -1,0 +1,40 @@
+{
+  "export_timestamp": "2025-05-30T13:08:59.803858",
+  "system_info": {
+    "system_version": "1.0.0",
+    "model_version": "v2024.1",
+    "initialization_time": "2025-05-30T13:08:59.802242",
+    "log_directory": "/Users/hasanhuseyinsevgi/Desktop/ai_system_nystagmus/clinical_logs",
+    "compliance": [
+      "HIPAA",
+      "GDPR"
+    ]
+  },
+  "audit_report": {
+    "report_generated": "2025-05-30T13:08:59.803860",
+    "period": {
+      "start": null,
+      "end": null
+    },
+    "summary": {
+      "total_analyses": 8,
+      "approved_analyses": 7,
+      "pending_analyses": 1,
+      "rejected_analyses": 0,
+      "unique_patients": 7,
+      "calibration_changes": 0,
+      "model_updates": 0,
+      "access_violations": 0
+    },
+    "compliance_status": "warning",
+    "recommendations": [
+      "Bekleyen onaylar %10'u aşıyor. Doktor onay sürecini hızlandırın."
+    ]
+  },
+  "data_retention_policy": "7_years",
+  "encryption_status": "AES-256",
+  "compliance_frameworks": [
+    "HIPAA",
+    "GDPR"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "model_type": "RandomForest",
+  "model_version": "1.0.0",
+  "trained_date": "2025-05-12T11:33:37.859227",
+  "features": [
+    "left_position_std_x",
+    "left_position_std_y",
+    "left_velocity_std_x",
+    "left_velocity_std_y",
+    "left_max_velocity_x",
+    "left_max_velocity_y",
+    "right_position_std_x",
+    "right_position_std_y",
+    "right_velocity_std_x",
+    "right_velocity_std_y",
+    "right_max_velocity_x",
+    "right_max_velocity_y",
+    "left_dominant_freq",
+    "right_dominant_freq",
+    "left_freq_ratio",
+    "right_freq_ratio",
+    "left_velocity_std",
+    "right_velocity_std",
+    "left_fast_phases",
+    "right_fast_phases",
+    "left_direction_ratio",
+    "right_direction_ratio",
+    "confidence",
+    "total_score",
+    "rhythmicity_score",
+    "jerkiness_score",
+    "direction_consistency_score",
+    "is_nystagmus",
+    "eye_distance",
+    "horizontal_difference",
+    "vertical_difference",
+    "alignment_score",
+    "strabismus_estimate",
+    "frames_processed_ratio"
+  ],
+  "params": {
+    "n_estimators": 100,
+    "max_depth": 10,
+    "random_state": 42
+  },
+  "thresholds": {
+    "nistagmus_confidence": 0.65,
+    "normal_confidence": 0.6
+  },
+  "metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0
+  }
+}

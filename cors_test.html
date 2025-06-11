@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nistagmus AI API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 10px 10px 0;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        pre {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status-ok {
+            background-color: #dff0d8;
+            color: #3c763d;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .status-error {
+            background-color: #f2dede;
+            color: #a94442;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Nistagmus AI API Test</h1>
+        
+        <div id="status" class="status"></div>
+        
+        <div>
+            <button id="testSimpleApi">Simple API Test</button>
+            <button id="testAiApi">AI API Health Test</button>
+            <button id="testCors">CORS Test</button>
+            <button id="clearResults">Sonuçları Temizle</button>
+        </div>
+        
+        <h2>Sonuçlar:</h2>
+        <pre id="results">Henüz test yapılmadı.</pre>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const resultsEl = document.getElementById('results');
+        
+        document.getElementById('testSimpleApi').addEventListener('click', async () => {
+            try {
+                statusEl.textContent = 'Simple API test ediliyor...';
+                statusEl.className = 'status';
+                
+                const response = await fetch('http://localhost:8001/', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                resultsEl.textContent = JSON.stringify(data, null, 2);
+                
+                if (response.ok) {
+                    statusEl.textContent = 'Simple API testi başarılı!';
+                    statusEl.className = 'status status-ok';
+                } else {
+                    statusEl.textContent = 'Simple API testi başarısız!';
+                    statusEl.className = 'status status-error';
+                }
+            } catch (error) {
+                resultsEl.textContent = error.toString();
+                statusEl.textContent = 'Simple API testi başarısız! Hata oluştu.';
+                statusEl.className = 'status status-error';
+            }
+        });
+        
+        document.getElementById('testAiApi').addEventListener('click', async () => {
+            try {
+                statusEl.textContent = 'AI API health kontrolü yapılıyor...';
+                statusEl.className = 'status';
+                
+                const response = await fetch('http://localhost:8001/health', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-API-Key': 'test-api-key'
+                    }
+                });
+                
+                const data = await response.json();
+                resultsEl.textContent = JSON.stringify(data, null, 2);
+                
+                if (response.ok) {
+                    statusEl.textContent = 'AI API health testi başarılı!';
+                    statusEl.className = 'status status-ok';
+                } else {
+                    statusEl.textContent = 'AI API health testi başarısız!';
+                    statusEl.className = 'status status-error';
+                }
+            } catch (error) {
+                resultsEl.textContent = error.toString();
+                statusEl.textContent = 'AI API health testi başarısız! Hata oluştu.';
+                statusEl.className = 'status status-error';
+            }
+        });
+        
+        document.getElementById('testCors').addEventListener('click', async () => {
+            try {
+                statusEl.textContent = 'CORS test ediliyor...';
+                statusEl.className = 'status';
+                
+                // Bu çağrı CORS kurallarını test eder
+                const response = await fetch('http://localhost:8001/health', {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'http://localhost:3000',
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'X-API-Key'
+                    }
+                });
+                
+                const headers = {};
+                for (const [key, value] of response.headers.entries()) {
+                    headers[key] = value;
+                }
+                
+                resultsEl.textContent = JSON.stringify({
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: headers
+                }, null, 2);
+                
+                if (response.ok || response.status === 204) {
+                    statusEl.textContent = 'CORS testi başarılı!';
+                    statusEl.className = 'status status-ok';
+                } else {
+                    statusEl.textContent = 'CORS testi başarısız!';
+                    statusEl.className = 'status status-error';
+                }
+            } catch (error) {
+                resultsEl.textContent = error.toString();
+                statusEl.textContent = 'CORS testi başarısız! Hata oluştu.';
+                statusEl.className = 'status status-error';
+            }
+        });
+        
+        document.getElementById('clearResults').addEventListener('click', () => {
+            resultsEl.textContent = 'Sonuçlar temizlendi.';
+            statusEl.textContent = '';
+            statusEl.className = 'status';
+        });
+    </script>
+</body>
+</html> 

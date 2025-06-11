@@ -1,0 +1,23 @@
+{
+  "regression_metrics": {
+    "mae_frequency": 3.294343264628814,
+    "mae_angle": 9.818775715978276,
+    "frequency_errors": [
+      8.188212803396343,
+      0.8699748834344225,
+      0.8248421070556753
+    ],
+    "angle_errors": [
+      9.646474151799604,
+      6.321277187466055,
+      13.488575808669172
+    ],
+    "mae_frequency_passed": true,
+    "mae_angle_passed": true,
+    "status": "COMPLETED"
+  },
+  "timestamp": "2024-01-30T14:05:00Z",
+  "total_tests": 3,
+  "passed_tests": 3,
+  "failed_tests": 0
+} 

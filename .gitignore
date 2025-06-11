@@ -1,0 +1,68 @@
+# ======= Sanal Ortam / Env =======
+venv/
+env/
+.env
+.env.example
+
+# ======= Python Cache ve Derlenmişler =======
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ======= Log ve Geçici Dosyalar =======
+*.log
+analysis_log.csv
+access_log.csv
+*.tmp
+temp_uploads/
+backup_before_cleanup/
+detector.py.backup
+detector.py.bak
+detector.py.temp_backup
+
+# ======= Model Ağırlıkları ve Büyük Dosyalar =======
+*.h5
+*.pt
+*.ckpt
+# Test videoları (çok büyükse)
+*.mp4
+test_historical_*.mp4
+test_clinical_video.mp4
+
+# ======= Hassas / Anahtar Dosyalar =======
+master.key
+calibration_config.json
+access_control.json
+# Eğer privacy.py içinde gizli anahtarlar varsa, ekleyin:
+# privacy.py
+
+# ======= IDE ve Sistem Dosyaları =======
+.vscode/
+.idea/
+.DS_Store
+
+# ======= Diğer =======
+*.sqlite3
+*.db
+# Sanal ortam
+venv/
+env/
+.env
+
+# Log dosyaları
+*.log
+
+# Büyük model ağırlıkları
+*.h5
+*.pt
+*.ckpt
+
+# IDE/OS dosyaları
+.vscode/
+.idea/
+.DS_Store
+
+# Geçici
+*.tmp
+temp_uploads/
+

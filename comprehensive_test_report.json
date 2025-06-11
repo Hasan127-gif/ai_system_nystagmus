@@ -1,0 +1,485 @@
+{
+  "timestamp": "2025-05-30T14:21:57.755856",
+  "test_results": [
+    {
+      "timestamp": "2025-05-30T14:21:55.031590",
+      "component": "Dependencies",
+      "test_name": "Import OpenCV",
+      "status": "PASS",
+      "details": "OpenCV başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:55.762156",
+      "component": "Dependencies",
+      "test_name": "Import MediaPipe",
+      "status": "PASS",
+      "details": "MediaPipe başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:55.762193",
+      "component": "Dependencies",
+      "test_name": "Import NumPy",
+      "status": "PASS",
+      "details": "NumPy başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:55.763288",
+      "component": "Dependencies",
+      "test_name": "Import Cryptography",
+      "status": "PASS",
+      "details": "Cryptography başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:55.763305",
+      "component": "Dependencies",
+      "test_name": "Import Matplotlib",
+      "status": "PASS",
+      "details": "Matplotlib başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:56.258444",
+      "component": "Dependencies",
+      "test_name": "Import Scikit-learn",
+      "status": "PASS",
+      "details": "Scikit-learn başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.337398",
+      "component": "Dependencies",
+      "test_name": "Import PyTorch",
+      "status": "PASS",
+      "details": "PyTorch başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.340286",
+      "component": "Dependencies",
+      "test_name": "Optional Tkinter",
+      "status": "INFO",
+      "details": "Tkinter eksik (GUI için gerekli - opsiyonel)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.410717",
+      "component": "Dependencies",
+      "test_name": "Optional Flask",
+      "status": "PASS",
+      "details": "Flask mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.412481",
+      "component": "Core Modules",
+      "test_name": "Import detector",
+      "status": "PASS",
+      "details": "Başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.412501",
+      "component": "Core Modules",
+      "test_name": "detector Class Check",
+      "status": "PASS",
+      "details": "NystagmusDetector sınıfı mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.412775",
+      "component": "Core Modules",
+      "test_name": "Import features",
+      "status": "PASS",
+      "details": "Başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.413059",
+      "component": "Core Modules",
+      "test_name": "Import model",
+      "status": "PASS",
+      "details": "Başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.413428",
+      "component": "Core Modules",
+      "test_name": "Import calibration",
+      "status": "PASS",
+      "details": "Başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.413692",
+      "component": "Core Modules",
+      "test_name": "Import validation",
+      "status": "PASS",
+      "details": "Başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.438667",
+      "component": "Core Modules",
+      "test_name": "Import privacy",
+      "status": "PASS",
+      "details": "Başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.438695",
+      "component": "Core Modules",
+      "test_name": "privacy Class Check",
+      "status": "PASS",
+      "details": "PrivacyManager sınıfı mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.439275",
+      "component": "Core Modules",
+      "test_name": "Import logger",
+      "status": "PASS",
+      "details": "Başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.439766",
+      "component": "Core Modules",
+      "test_name": "Import dashboard_cli",
+      "status": "PASS",
+      "details": "Başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.440495",
+      "component": "Core Modules",
+      "test_name": "Import ui_cli",
+      "status": "PASS",
+      "details": "Başarıyla yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.611944",
+      "component": "Detector",
+      "test_name": "Initialization",
+      "status": "PASS",
+      "details": "Detector başarıyla başlatıldı",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.611984",
+      "component": "Detector",
+      "test_name": "MediaPipe Model",
+      "status": "PASS",
+      "details": "MediaPipe face mesh yüklendi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.687861",
+      "component": "Detector",
+      "test_name": "Video Analysis",
+      "status": "PASS",
+      "details": "Video analizi başarılı (0.08s)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.687882",
+      "component": "Detector",
+      "test_name": "Result Field processed_frames",
+      "status": "PASS",
+      "details": "processed_frames mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.687888",
+      "component": "Detector",
+      "test_name": "Result Field face_detected_frames",
+      "status": "PASS",
+      "details": "face_detected_frames mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.687893",
+      "component": "Detector",
+      "test_name": "Result Field analysis_complete",
+      "status": "PASS",
+      "details": "analysis_complete mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.700292",
+      "component": "Privacy",
+      "test_name": "Encryption/Decryption",
+      "status": "PASS",
+      "details": "Şifreleme/çözme başarılı",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.701207",
+      "component": "Privacy",
+      "test_name": "Invalid Auth",
+      "status": "PASS",
+      "details": "Geçersiz giriş reddedildi",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.731064",
+      "component": "Privacy",
+      "test_name": "Valid Auth",
+      "status": "PASS",
+      "details": "Geçerli giriş başarılı",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.731137",
+      "component": "Privacy",
+      "test_name": "Session Validation",
+      "status": "PASS",
+      "details": "Session doğrulama başarılı",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.732886",
+      "component": "Privacy",
+      "test_name": "HIPAA Compliance",
+      "status": "PASS",
+      "details": "HIPAA uyumluluğu aktif",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.735203",
+      "component": "Logger",
+      "test_name": "Analysis Logging",
+      "status": "PASS",
+      "details": "Analiz kaydı oluşturuldu: 55d927a4...",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.735550",
+      "component": "Logger",
+      "test_name": "Audit Report",
+      "status": "PASS",
+      "details": "Audit raporu oluşturuldu (Toplam: 17)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.736142",
+      "component": "Logger",
+      "test_name": "Data Export",
+      "status": "PASS",
+      "details": "Veri dışa aktarma başarılı",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.736194",
+      "component": "Calibration",
+      "test_name": "Status Check",
+      "status": "PASS",
+      "details": "Kalibrasyon aktif (Oran: 0.008320502943378437)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.736202",
+      "component": "Calibration",
+      "test_name": "Parameter pixel_to_degree_ratio",
+      "status": "PASS",
+      "details": "pixel_to_degree_ratio mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.736207",
+      "component": "Calibration",
+      "test_name": "Parameter camera_matrix",
+      "status": "PASS",
+      "details": "camera_matrix mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.736211",
+      "component": "Calibration",
+      "test_name": "Parameter reference_points",
+      "status": "PASS",
+      "details": "reference_points mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.739836",
+      "component": "ML Model",
+      "test_name": "Initialization",
+      "status": "PASS",
+      "details": "ML sınıflandırıcı başlatıldı",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.746053",
+      "component": "ML Model",
+      "test_name": "Classification",
+      "status": "PASS",
+      "details": "Sınıflandırma başarılı (Nistagmus: False)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.746678",
+      "component": "ML Model",
+      "test_name": "Feature Extraction",
+      "status": "PASS",
+      "details": "Feature extraction başarılı (5 özellik)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.747519",
+      "component": "UI Systems",
+      "test_name": "CLI Dashboard Metrics",
+      "status": "PASS",
+      "details": "CLI dashboard metrik güncelleme başarılı",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.749904",
+      "component": "UI Systems",
+      "test_name": "CLI Approval Save",
+      "status": "PASS",
+      "details": "CLI approval kaydetme başarılı",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754672",
+      "component": "UI Systems",
+      "test_name": "Web Dashboard Init",
+      "status": "PASS",
+      "details": "Web dashboard başlatıldı",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754770",
+      "component": "File System",
+      "test_name": "Critical File detector.py",
+      "status": "PASS",
+      "details": "Dosya mevcut (13433 bytes)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754840",
+      "component": "File System",
+      "test_name": "Critical File features.py",
+      "status": "PASS",
+      "details": "Dosya mevcut (6829 bytes)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754856",
+      "component": "File System",
+      "test_name": "Critical File model.py",
+      "status": "PASS",
+      "details": "Dosya mevcut (9325 bytes)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754871",
+      "component": "File System",
+      "test_name": "Critical File calibration.py",
+      "status": "PASS",
+      "details": "Dosya mevcut (11760 bytes)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754886",
+      "component": "File System",
+      "test_name": "Critical File validation.py",
+      "status": "PASS",
+      "details": "Dosya mevcut (19302 bytes)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754898",
+      "component": "File System",
+      "test_name": "Critical File privacy.py",
+      "status": "PASS",
+      "details": "Dosya mevcut (24596 bytes)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754909",
+      "component": "File System",
+      "test_name": "Critical File logger.py",
+      "status": "PASS",
+      "details": "Dosya mevcut (20179 bytes)",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754921",
+      "component": "File System",
+      "test_name": "Important File dashboard_cli.py",
+      "status": "PASS",
+      "details": "Dosya mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754930",
+      "component": "File System",
+      "test_name": "Important File ui_cli.py",
+      "status": "PASS",
+      "details": "Dosya mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754939",
+      "component": "File System",
+      "test_name": "Important File web_dashboard.py",
+      "status": "PASS",
+      "details": "Dosya mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754948",
+      "component": "File System",
+      "test_name": "Important File run_system.py",
+      "status": "PASS",
+      "details": "Dosya mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754955",
+      "component": "File System",
+      "test_name": "Log Directory clinical_logs",
+      "status": "PASS",
+      "details": "Dizin mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.754961",
+      "component": "File System",
+      "test_name": "Log Directory audit_logs",
+      "status": "PASS",
+      "details": "Dizin mevcut",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.755767",
+      "component": "Performance",
+      "test_name": "Memory Usage",
+      "status": "PASS",
+      "details": "Bellek kullanımı: 330.4MB",
+      "error_level": "INFO"
+    },
+    {
+      "timestamp": "2025-05-30T14:21:57.755787",
+      "component": "Performance",
+      "test_name": "Import Speed",
+      "status": "PASS",
+      "details": "Import süresi: 0.00s",
+      "error_level": "INFO"
+    }
+  ],
+  "critical_errors": [],
+  "warnings": [],
+  "performance_metrics": {
+    "video_analysis_time": 0.07580709457397461,
+    "memory_usage_mb": 330.4375,
+    "import_time": 3.814697265625e-06,
+    "total_test_time": 3.0691959857940674
+  }
+}

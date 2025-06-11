@@ -1,0 +1,22 @@
+# Sanal ortam
+venv/
+env/
+.env
+
+# Log dosyaları
+*.log
+
+# Büyük model ağırlıkları
+*.h5
+*.pt
+*.ckpt
+
+# IDE/OS dosyaları
+.vscode/
+.idea/
+.DS_Store
+
+# Geçici
+*.tmp
+temp_uploads/
+

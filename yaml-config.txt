@@ -1,0 +1,1644 @@
+# config/yaml_config.py
+
+from typing import Dict, List, Any, Optional, Union, Type
+import os
+import yaml
+import json
+import logging
+from pydantic import BaseModel, Field, validator
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+from pydantic.env_settings import BaseSettings
+import threading
+
+from .config_schema import (
+    EyeAnalysisConfig, CameraConfig, DetectionConfig, AnalysisConfig,
+    CalibrationConfig, SignalProcessingConfig, ModelConfig, LoggingConfig, UIConfig
+)
+
+logger = logging.getLogger('eye_tracker.config.yaml')
+
+class YAMLConfigManager:
+    """YAML tabanlı yapılandırma yönetimi"""
+    
+    def __init__(self, config_dir: str = "config"):
+        """
+        Args:
+            config_dir: Yapılandırma dosyaları dizini
+        """
+        self.config_dir = config_dir
+        self.default_config_path = os.path.join(config_dir, "default_config.yaml")
+        self.user_config_path = os.path.join(config_dir, "config.yaml")
+        
+        # Dizin oluştur (yoksa)
+        os.makedirs(config_dir, exist_ok=True)
+        
+        # Ortam değişkeni önekleri
+        self.env_prefix = "EYE_"
+    
+    def create_default_config(self) -> None:
+        """Varsayılan yapılandırma dosyasını oluştur"""
+        default_config = EyeAnalysisConfig().dict()
+        
+        with open(self.default_config_path, 'w') as f:
+            yaml.safe_dump(default_config, f, default_flow_style=False, sort_keys=False)
+        
+        logger.info(f"Varsayılan yapılandırma oluşturuldu: {self.default_config_path}")
+    
+    def load_config(self) -> EyeAnalysisConfig:
+        """
+        Yapılandırma dosyasını yükle (yoksa varsayılanı kullan)
+        
+        Returns:
+            Yapılandırma nesnesi
+        """
+        # Varsayılan yapılandırma dosyasını kontrol et
+        if not os.path.exists(self.default_config_path):
+            self.create_default_config()
+        
+        # Önce ortam değişkenlerini kontrol et
+        env_config = self._load_from_env()
+        
+        # Kullanıcı yapılandırması var mı kontrol et
+        config_data = {}
+        if os.path.exists(self.user_config_path):
+            try:
+                with open(self.user_config_path, 'r') as f:
+                    config_data = yaml.safe_load(f)
+                
+                # Ortam değişkenlerini ekle
+                self._update_nested_dict(config_data, env_config)
+                
+                # Pydantic model ile doğrula ve nesne oluştur
+                config = EyeAnalysisConfig(**config_data)
+                logger.info(f"Kullanıcı yapılandırması yüklendi: {self.user_config_path}")
+                return config
+            
+            except Exception as e:
+                logger.error(f"Kullanıcı yapılandırması yüklenemedi: {str(e)}")
+                # Hata durumunda ortam değişkenleri + varsayılan yapılandırmayı kullan
+        
+        # Varsayılan yapılandırmayı yükle
+        try:
+            with open(self.default_config_path, 'r') as f:
+                default_config_data = yaml.safe_load(f)
+            
+            # Ortam değişkenlerini ekle
+            self._update_nested_dict(default_config_data, env_config)
+            
+            config = EyeAnalysisConfig(**default_config_data)
+            logger.info(f"Varsayılan yapılandırma yüklendi: {self.default_config_path}")
+            
+            # Kullanıcı yapılandırmasını oluştur (yoksa)
+            if not os.path.exists(self.user_config_path):
+                self.save_config(config)
+            
+            return config
+            
+        except Exception as e:
+            logger.error(f"Varsayılan yapılandırma yüklenemedi: {str(e)}")
+            # Son çare: Hiçbir dosya yoksa veya bozuksa yeni yapılandırma oluştur
+            config = EyeAnalysisConfig()
+            self.save_config(config)
+            return config
+    
+    def _load_from_env(self) -> Dict[str, Any]:
+        """
+        Yapılandırmayı ortam değişkenlerinden yükle
+        
+        Returns:
+            Ortam değişkenlerinden alınan yapılandırma
+        """
+        env_config = {}
+        
+        # Tüm ortam değişkenlerini tara
+        for key, value in os.environ.items():
+            # Ön ekimizle başlayan değişkenleri kontrol et
+            if key.startswith(self.env_prefix):
+                # Ön eki kaldır
+                config_key = key[len(self.env_prefix):].lower()
+                
+                # Alt bölümleri nokta notasyonuna dönüştür
+                # Örnek: EYE_CAMERA_ID -> camera.camera_id
+                parts = config_key.split('_', 1)
+                if len(parts) > 1:
+                    section, field = parts
+                    if section not in env_config:
+                        env_config[section] = {}
+                    env_config[section][field] = self._convert_value(value)
+                else:
+                    # Üst düzey alanlar
+                    env_config[config_key] = self._convert_value(value)
+        
+        return env_config
+    
+    def _convert_value(self, value: str) -> Any:
+        """
+        Ortam değişkeni değerini uygun tipe dönüştür
+        
+        Args:
+            value: Ortam değişkeni değeri
+            
+        Returns:
+            Dönüştürülmüş değer
+        """
+        # Boolean
+        if value.lower() in ('true', 'yes', '1'):
+            return True
+        elif value.lower() in ('false', 'no', '0'):
+            return False
+            
+        # Sayısal değerler
+        try:
+            # Tam sayı
+            if value.isdigit():
+                return int(value)
+                
+            # Ondalıklı sayı
+            float_val = float(value)
+            if float_val.is_integer():
+                return int(float_val)
+            return float_val
+        except ValueError:
+            pass
+            
+        # Liste (virgülle ayrılmış)
+        if ',' in value:
+            return [self._convert_value(item.strip()) for item in value.split(',')]
+            
+        # String
+        return value
+    
+    def save_config(self, config: EyeAnalysisConfig) -> bool:
+        """
+        Yapılandırmayı dosyaya kaydet
+        
+        Args:
+            config: Kaydedilecek yapılandırma nesnesi
+            
+        Returns:
+            Başarı durumu
+        """
+        try:
+            # Yapılandırmayı sözlüğe dönüştür
+            config_dict = config.dict()
+            
+            # Dosyaya kaydet (YAML)
+            with open(self.user_config_path, 'w') as f:
+                yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
+            
+            logger.info(f"Yapılandırma YAML olarak kaydedildi: {self.user_config_path}")
+            
+            # Ayrıca JSON formatında da kaydet (uyumlu kullanım için)
+            json_path = os.path.join(self.config_dir, "config.json")
+            with open(json_path, 'w') as f:
+                json.dump(config_dict, f, indent=2)
+                
+            logger.info(f"Yapılandırma JSON olarak da kaydedildi: {json_path}")
+            
+            return True
+        
+        except Exception as e:
+            logger.error(f"Yapılandırma kaydedilemedi: {str(e)}")
+            return False
+    
+    def update_config(self, updates: Dict[str, Any]) -> EyeAnalysisConfig:
+        """
+        Mevcut yapılandırmayı güncelle
+        
+        Args:
+            updates: Güncellenecek alanlar ve değerleri
+            
+        Returns:
+            Güncellenmiş yapılandırma nesnesi
+        """
+        # Mevcut yapılandırmayı yükle
+        config = self.load_config()
+        
+        # Güncelleme için yapılandırmayı sözlüğe çevir
+        config_dict = config.dict()
+        
+        # Güncelleme alanlarını döngüde işle
+        for key_path, value in updates.items():
+            # Noktalı yolu parçalara ayır (örn: "camera.frame_width")
+            parts = key_path.split('.')
+            
+            # İç içe alan güncelleme
+            if len(parts) > 1:
+                section = parts[0]
+                field = '.'.join(parts[1:])
+                
+                if section in config_dict:
+                    if isinstance(config_dict[section], dict):
+                        # İç içe güncelleme için yardımcı fonksiyon
+                        self._update_nested_dict(config_dict[section], {field: value})
+            else:
+                # Doğrudan üst seviye alan güncelleme
+                config_dict[key_path] = value
+        
+        # Güncellenmiş sözlük ile yeni yapılandırma oluştur
+        try:
+            updated_config = EyeAnalysisConfig(**config_dict)
+            
+            # Yapılandırmayı kaydet
+            self.save_config(updated_config)
+            
+            return updated_config
+        except Exception as e:
+            logger.error(f"Yapılandırma güncellenemedi: {str(e)}")
+            # Hatada orijinal yapılandırmayı döndür
+            return config
+    
+    def _update_nested_dict(self, d: Dict, updates: Dict) -> None:
+        """
+        İç içe sözlük güncelleyen yardımcı fonksiyon
+        
+        Args:
+            d: Güncellenecek sözlük
+            updates: Güncellemeler
+        """
+        for key, value in updates.items():
+            parts = key.split('.', 1)
+            
+            if len(parts) == 1:
+                d[key] = value
+            else:
+                first, rest = parts
+                if first not in d:
+                    d[first] = {}
+                
+                if isinstance(d[first], dict):
+                    self._update_nested_dict(d[first], {rest: value})
+    
+    def load_profile(self, profile_name: str) -> EyeAnalysisConfig:
+        """
+        Belirli bir profil için yapılandırma yükle
+        
+        Args:
+            profile_name: Profil adı
+            
+        Returns:
+            Profil yapılandırması
+        """
+        profile_path = os.path.join(self.config_dir, f"{profile_name}_config.yaml")
+        
+        if not os.path.exists(profile_path):
+            logger.warning(f"Profil bulunamadı: {profile_name}")
+            return self.load_config()
+        
+        try:
+            with open(profile_path, 'r') as f:
+                profile_data = yaml.safe_load(f)
+            
+            # Ortam değişkenlerini ekle
+            env_config = self._load_from_env()
+            self._update_nested_dict(profile_data, env_config)
+            
+            config = EyeAnalysisConfig(**profile_data)
+            logger.info(f"Profil yüklendi: {profile_name}")
+            return config
+            
+        except Exception as e:
+            logger.error(f"Profil yüklenemedi: {str(e)}")
+            return self.load_config()
+    
+    def save_profile(self, config: EyeAnalysisConfig, profile_name: str) -> bool:
+        """
+        Yapılandırmayı profil olarak kaydet
+        
+        Args:
+            config: Kaydedilecek yapılandırma
+            profile_name: Profil adı
+            
+        Returns:
+            Başarı durumu
+        """
+        try:
+            # Adın geçerli olup olmadığını kontrol et
+            if not profile_name or not profile_name.isalnum():
+                logger.error("Geçersiz profil adı. Alfanumerik karakterler kullanın.")
+                return False
+                
+            profile_path = os.path.join(self.config_dir, f"{profile_name}_config.yaml")
+            
+            config_dict = config.dict()
+            
+            with open(profile_path, 'w') as f:
+                yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
+            
+            logger.info(f"Profil kaydedildi: {profile_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Profil kaydedilemedi: {str(e)}")
+            return False
+    
+    def list_profiles(self) -> List[str]:
+        """
+        Mevcut profilleri listele
+        
+        Returns:
+            Profil adları listesi
+        """
+        profiles = []
+        
+        try:
+            # Dizindeki tüm dosyaları tara
+            for filename in os.listdir(self.config_dir):
+                # _config.yaml ile biten dosyaları bul
+                if filename.endswith('_config.yaml'):
+                    # Profil adını çıkar
+                    profile_name = filename[:-12]  # "_config.yaml" uzunluğu: 12
+                    profiles.append(profile_name)
+                    
+        except Exception as e:
+            logger.error(f"Profilleri listelerken hata: {str(e)}")
+            
+        return profiles
+    
+    def delete_profile(self, profile_name: str) -> bool:
+        """
+        Profili sil
+        
+        Args:
+            profile_name: Silinecek profil adı
+            
+        Returns:
+            Başarı durumu
+        """
+        profile_path = os.path.join(self.config_dir, f"{profile_name}_config.yaml")
+        
+        if not os.path.exists(profile_path):
+            logger.warning(f"Silinecek profil bulunamadı: {profile_name}")
+            return False
+            
+        try:
+            os.remove(profile_path)
+            logger.info(f"Profil silindi: {profile_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Profil silinirken hata: {str(e)}")
+            return False
+    
+    def export_config(self, config: EyeAnalysisConfig, export_path: str) -> bool:
+        """
+        Yapılandırmayı dışa aktar
+        
+        Args:
+            config: Dışa aktarılacak yapılandırma
+            export_path: Dışa aktarma dosya yolu
+            
+        Returns:
+            Başarı durumu
+        """
+        try:
+            config_dict = config.dict()
+            
+            # Dosya uzantısına göre YAML veya JSON olarak kaydet
+            if export_path.endswith('.yaml') or export_path.endswith('.yml'):
+                with open(export_path, 'w') as f:
+                    yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
+            elif export_path.endswith('.json'):
+                with open(export_path, 'w') as f:
+                    json.dump(config_dict, f, indent=2)
+            else:
+                # Varsayılan olarak YAML kullan
+                with open(export_path, 'w') as f:
+                    yaml.safe_dump(config_dict, f, default_flow_style=False, sort_keys=False)
+            
+            logger.info(f"Yapılandırma dışa aktarıldı: {export_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Yapılandırma dışa aktarma hatası: {str(e)}")
+            return False
+    
+    def import_config(self, import_path: str) -> Optional[EyeAnalysisConfig]:
+        """
+        Yapılandırmayı içe aktar
+        
+        Args:
+            import_path: İçe aktarılacak dosya yolu
+            
+        Returns:
+            İçe aktarılan yapılandırma veya None
+        """
+        if not os.path.exists(import_path):
+            logger.error(f"İçe aktarılacak dosya bulunamadı: {import_path}")
+            return None
+            
+        try:
+            # Dosya uzantısına göre YAML veya JSON olarak yükle
+            if import_path.endswith('.yaml') or import_path.endswith('.yml'):
+                with open(import_path, 'r') as f:
+                    config_data = yaml.safe_load(f)
+            elif import_path.endswith('.json'):
+                with open(import_path, 'r') as f:
+                    config_data = json.load(f)
+            else:
+                # Dosya formatını tahmin et
+                with open(import_path, 'r') as f:
+                    content = f.read()
+                    
+                    try:
+                        # Önce JSON olarak dene
+                        config_data = json.loads(content)
+                    except json.JSONDecodeError:
+                        try:
+                            # Sonra YAML olarak dene
+                            config_data = yaml.safe_load(content)
+                        except yaml.YAMLError:
+                            logger.error(f"Desteklenmeyen dosya formatı: {import_path}")
+                            return None
+            
+            # Yapılandırmayı oluştur ve doğrula
+            config = EyeAnalysisConfig(**config_data)
+            logger.info(f"Yapılandırma içe aktarıldı: {import_path}")
+            return config
+            
+        except Exception as e:
+            logger.error(f"Yapılandırma içe aktarma hatası: {str(e)}")
+            return None
+
+
+# config/config_ui.py
+
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+import threading
+import logging
+import os
+from typing import Dict, Any, Callable, Optional, List, Union
+
+from .yaml_config import YAMLConfigManager
+from .config_schema import EyeAnalysisConfig
+
+logger = logging.getLogger('eye_tracker.config.ui')
+
+class ConfigUI:
+    """
+    Yapılandırma yönetimi için grafiksel kullanıcı arayüzü
+    """
+    def __init__(self, config_manager: YAMLConfigManager, on_config_change: Optional[Callable[[EyeAnalysisConfig], None]] = None):
+        """
+        Args:
+            config_manager: Yapılandırma yöneticisi
+            on_config_change: Yapılandırma değişiminde çağrılacak fonksiyon
+        """
+        self.config_manager = config_manager
+        self.on_config_change = on_config_change
+        
+        # Pencere oluştur
+        self.root = None
+        self.notebook = None
+        self.current_config = None
+        
+        # Form elemanları
+        self.form_elements: Dict[str, Dict[str, Any]] = {}
+        
+        # Aktif profil
+        self.active_profile = "default"
+        self.has_unsaved_changes = False
+    
+    def create_window(self, parent: Optional[tk.Tk] = None) -> tk.Toplevel:
+        """
+        Yapılandırma penceresini oluştur
+        
+        Args:
+            parent: Üst pencere (None: yeni pencere)
+            
+        Returns:
+            Pencere nesnesi
+        """
+        # Yeni pencere oluştur
+        if parent:
+            self.root = tk.Toplevel(parent)
+        else:
+            # Bağımsız pencere
+            root_tk = tk.Tk()
+            root_tk.withdraw()  # Ana pencereyi gizle
+            self.root = tk.Toplevel(root_tk)
+        
+        self.root.title("Göz Analiz Sistemi - Yapılandırma")
+        self.root.geometry("800x600")
+        self.root.minsize(700, 500)
+        
+        # Mevcut yapılandırmayı yükle
+        self.current_config = self.config_manager.load_config()
+        
+        # Ana düzen
+        main_frame = ttk.Frame(self.root)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Üst panel (profil seçimi ve butonlar)
+        top_panel = ttk.Frame(main_frame)
+        top_panel.pack(fill=tk.X, pady=(0, 10))
+        
+        # Profil seçimi
+        profile_frame = ttk.LabelFrame(top_panel, text="Profil")
+        profile_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        
+        profile_inner = ttk.Frame(profile_frame)
+        profile_inner.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Label(profile_inner, text="Aktif Profil:").pack(side=tk.LEFT, padx=(0, 5))
+        
+        # Profil listesi
+        self.profile_var = tk.StringVar(value=self.active_profile)
+        self.profile_dropdown = ttk.Combobox(profile_inner, textvariable=self.profile_var, state="readonly", width=15)
+        self.profile_dropdown.pack(side=tk.LEFT, padx=(0, 5))
+        self.update_profile_list()
+        
+        # Profil butonları
+        ttk.Button(profile_inner, text="Yükle", command=self.load_profile).pack(side=tk.LEFT, padx=2)
+        ttk.Button(profile_inner, text="Kaydet", command=self.save_profile).pack(side=tk.LEFT, padx=2)
+        ttk.Button(profile_inner, text="Yeni", command=self.new_profile).pack(side=tk.LEFT, padx=2)
+        ttk.Button(profile_inner, text="Sil", command=self.delete_profile).pack(side=tk.LEFT, padx=2)
+        
+        # Genel butonlar
+        button_frame = ttk.LabelFrame(top_panel, text="İşlemler")
+        button_frame.pack(side=tk.RIGHT, fill=tk.X, padx=(5, 0))
+        
+        button_inner = ttk.Frame(button_frame)
+        button_inner.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Button(button_inner, text="Uygula", command=self.apply_changes).pack(side=tk.LEFT, padx=2)
+        ttk.Button(button_inner, text="Kaydet", command=self.save_changes).pack(side=tk.LEFT, padx=2)
+        ttk.Button(button_inner, text="Sıfırla", command=self.reset_changes).pack(side=tk.LEFT, padx=2)
+        ttk.Button(button_inner, text="Dışa Aktar", command=self.export_config).pack(side=tk.LEFT, padx=2)
+        ttk.Button(button_inner, text="İçe Aktar", command=self.import_config).pack(side=tk.LEFT, padx=2)
+        
+        # Ana içerik (notebook/tab'lar)
+        self.notebook = ttk.Notebook(main_frame)
+        self.notebook.pack(fill=tk.BOTH, expand=True)
+        
+        # Ayar sekmeleri oluştur
+        self.create_camera_tab()
+        self.create_detection_tab()
+        self.create_analysis_tab()
+        self.create_calibration_tab()
+        self.create_signal_processing_tab()
+        self.create_model_tab()
+        self.create_logging_tab()
+        self.create_ui_tab()
+        
+        # Form alanlarını yapılandırma değerleriyle doldur
+        self.populate_form_values()
+        
+        # Pencere kapatıldığında yapılacaklar
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        
+        # Değişim izleme
+        self.has_unsaved_changes = False
+        
+        return self.root
+    
+    def update_profile_list(self) -> None:
+        """Profil listesini güncelle"""
+        if not hasattr(self, 'profile_dropdown'):
+            return
+            
+        # Mevcut profilleri al
+        profiles = ["default"] + self.config_manager.list_profiles()
+        
+        # Dropdown'u güncelle
+        self.profile_dropdown['values'] = profiles
+        
+        # Aktif profili seç
+        if self.active_profile in profiles:
+            self.profile_var.set(self.active_profile)
+        else:
+            self.profile_var.set("default")
+            self.active_profile = "default"
+    
+    def create_camera_tab(self) -> None:
+        """Kamera sekmesini oluştur"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Kamera")
+        
+        # Form alanları
+        form_frame = ttk.LabelFrame(tab, text="Kamera Ayarları")
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # İç içe grid düzeni için frame
+        inner_frame = ttk.Frame(form_frame)
+        inner_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Izgara düzeni
+        row = 0
+        
+        # Kamera ID
+        ttk.Label(inner_frame, text="Kamera ID:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        camera_id_var = tk.IntVar()
+        camera_id_spinbox = ttk.Spinbox(inner_frame, from_=0, to=10, textvariable=camera_id_var, width=10)
+        camera_id_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["camera.camera_id"] = {"widget": camera_id_spinbox, "var": camera_id_var}
+        
+        # Çözünürlük etiket
+        ttk.Label(inner_frame, text="Çözünürlük:").grid(row=row, column=2, sticky=tk.W, padx=5, pady=5)
+        
+        row += 1
+        
+        # Frame genişliği
+        ttk.Label(inner_frame, text="Frame Genişliği:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        frame_width_var = tk.IntVar()
+        frame_width_spinbox = ttk.Spinbox(inner_frame, from_=320, to=1920, textvariable=frame_width_var, width=10)
+        frame_width_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["camera.frame_width"] = {"widget": frame_width_spinbox, "var": frame_width_var}
+        
+        # Frame yüksekliği
+        ttk.Label(inner_frame, text="Frame Yüksekliği:").grid(row=row, column=2, sticky=tk.W, padx=5, pady=5)
+        frame_height_var = tk.IntVar()
+        frame_height_spinbox = ttk.Spinbox(inner_frame, from_=240, to=1080, textvariable=frame_height_var, width=10)
+        frame_height_spinbox.grid(row=row, column=3, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["camera.frame_height"] = {"widget": frame_height_spinbox, "var": frame_height_var}
+        
+        row += 1
+        
+        # FPS
+        ttk.Label(inner_frame, text="Hedef FPS:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        fps_var = tk.DoubleVar()
+        fps_spinbox = ttk.Spinbox(inner_frame, from_=10, to=60, increment=1, textvariable=fps_var, width=10)
+        fps_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["camera.fps"] = {"widget": fps_spinbox, "var": fps_var}
+        
+        # Otomatik FPS
+        auto_fps_var = tk.BooleanVar()
+        auto_fps_checkbox = ttk.Checkbutton(inner_frame, text="Otomatik FPS", variable=auto_fps_var)
+        auto_fps_checkbox.grid(row=row, column=2, columnspan=2, sticky=tk.W, padx=5, pady=5)
+        
+        # Özel değişken tanımlama (config'de yok)
+        self.form_elements["_auto_fps"] = {"widget": auto_fps_checkbox, "var": auto_fps_var}
+        
+        # FPS ve Auto FPS arasındaki bağlantıyı sağla
+        def toggle_fps(*args):
+            if auto_fps_var.get():
+                fps_spinbox.configure(state="disabled")
+                fps_var.set(0)  # 0: otomatik
+            else:
+                fps_spinbox.configure(state="normal")
+                if fps_var.get() == 0:
+                    fps_var.set(30)  # Varsayılan değer
+        
+        auto_fps_var.trace_add("write", toggle_fps)
+        
+        # Duyarlılık ayarları
+        row += 1
+        ttk.Separator(inner_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=4, sticky=tk.EW, pady=10)
+        
+        row += 1
+        ttk.Label(inner_frame, text="Kamera Test/Önizleme:").grid(row=row, column=0, columnspan=4, sticky=tk.W, padx=5, pady=5)
+        
+        row += 1
+        test_frame = ttk.Frame(inner_frame)
+        test_frame.grid(row=row, column=0, columnspan=4, sticky=tk.W, padx=5, pady=5)
+        
+        ttk.Button(test_frame, text="Kamera Test", command=self.test_camera).pack(side=tk.LEFT, padx=5)
+        ttk.Button(test_frame, text="Kamera Listesi", command=self.list_cameras).pack(side=tk.LEFT, padx=5)
+    
+    def create_detection_tab(self) -> None:
+        """Tespit sekmesini oluştur"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Tespit")
+        
+        # Form alanları
+        form_frame = ttk.LabelFrame(tab, text="Yüz Tespit Ayarları")
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # İ
+# İç içe grid düzeni için frame
+        inner_frame = ttk.Frame(form_frame)
+        inner_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Izgara düzeni
+        row = 0
+        
+        # Tespit güven eşiği
+        ttk.Label(inner_frame, text="Yüz Tespit Güven Eşiği:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        detection_confidence_var = tk.DoubleVar()
+        detection_confidence_scale = ttk.Scale(inner_frame, from_=0.1, to=1.0, variable=detection_confidence_var, 
+                                            orient=tk.HORIZONTAL, length=200)
+        detection_confidence_scale.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        detection_confidence_label = ttk.Label(inner_frame, textvariable=detection_confidence_var, width=5)
+        detection_confidence_label.grid(row=row, column=2, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["detection.face_detection_confidence"] = {"widget": detection_confidence_scale, 
+                                                                  "var": detection_confidence_var}
+        
+        # Değerin 2 ondalık gösterimi
+        def update_detection_label(*args):
+            detection_confidence_label.config(text=f"{detection_confidence_var.get():.2f}")
+        
+        detection_confidence_var.trace_add("write", update_detection_label)
+        
+        row += 1
+        
+        # Takip güven eşiği
+        ttk.Label(inner_frame, text="Yüz Takip Güven Eşiği:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        tracking_confidence_var = tk.DoubleVar()
+        tracking_confidence_scale = ttk.Scale(inner_frame, from_=0.1, to=1.0, variable=tracking_confidence_var, 
+                                           orient=tk.HORIZONTAL, length=200)
+        tracking_confidence_scale.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        tracking_confidence_label = ttk.Label(inner_frame, textvariable=tracking_confidence_var, width=5)
+        tracking_confidence_label.grid(row=row, column=2, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["detection.face_tracking_confidence"] = {"widget": tracking_confidence_scale, 
+                                                                 "var": tracking_confidence_var}
+        
+        # Değerin 2 ondalık gösterimi
+        def update_tracking_label(*args):
+            tracking_confidence_label.config(text=f"{tracking_confidence_var.get():.2f}")
+        
+        tracking_confidence_var.trace_add("write", update_tracking_label)
+        
+        row += 1
+        
+        # Maksimum yüz sayısı
+        ttk.Label(inner_frame, text="Maksimum Yüz Sayısı:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        max_faces_var = tk.IntVar()
+        max_faces_spinbox = ttk.Spinbox(inner_frame, from_=1, to=5, textvariable=max_faces_var, width=5)
+        max_faces_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["detection.max_num_faces"] = {"widget": max_faces_spinbox, "var": max_faces_var}
+        
+        row += 1
+        
+        # Gelişmiş landmark kullan
+        refine_landmarks_var = tk.BooleanVar()
+        refine_landmarks_check = ttk.Checkbutton(inner_frame, text="İris Tespiti İçin Gelişmiş Landmark Kullan", 
+                                              variable=refine_landmarks_var)
+        refine_landmarks_check.grid(row=row, column=0, columnspan=3, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["detection.refine_landmarks"] = {"widget": refine_landmarks_check, "var": refine_landmarks_var}
+    
+    def create_analysis_tab(self) -> None:
+        """Analiz sekmesini oluştur"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Analiz")
+        
+        # Form alanları
+        form_frame = ttk.LabelFrame(tab, text="Analiz Ayarları")
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # İç içe grid düzeni için frame
+        inner_frame = ttk.Frame(form_frame)
+        inner_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Izgara düzeni
+        row = 0
+        
+        # Tampon süresi
+        ttk.Label(inner_frame, text="Analiz Tampon Süresi (sn):").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        buffer_seconds_var = tk.DoubleVar()
+        buffer_seconds_spinbox = ttk.Spinbox(inner_frame, from_=0.5, to=10.0, increment=0.5, 
+                                          textvariable=buffer_seconds_var, width=5)
+        buffer_seconds_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["analysis.buffer_seconds"] = {"widget": buffer_seconds_spinbox, "var": buffer_seconds_var}
+        
+        row += 1
+        
+        # Nistagmus frekans eşiği
+        ttk.Label(inner_frame, text="Nistagmus Frekans Eşiği (Hz):").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        nistagmus_freq_var = tk.DoubleVar()
+        nistagmus_freq_spinbox = ttk.Spinbox(inner_frame, from_=0.1, to=5.0, increment=0.1, 
+                                          textvariable=nistagmus_freq_var, width=5)
+        nistagmus_freq_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["analysis.nistagmus_freq_threshold"] = {"widget": nistagmus_freq_spinbox, 
+                                                                "var": nistagmus_freq_var}
+        
+        row += 1
+        
+        # SPV eşiği
+        ttk.Label(inner_frame, text="SPV Eşiği (derece/sn):").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        spv_var = tk.DoubleVar()
+        spv_spinbox = ttk.Spinbox(inner_frame, from_=5.0, to=100.0, increment=5.0, textvariable=spv_var, width=5)
+        spv_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["analysis.spv_threshold"] = {"widget": spv_spinbox, "var": spv_var}
+        
+        row += 1
+        
+        # Yavaş faz hızı eşiği
+        ttk.Label(inner_frame, text="Yavaş Faz Hızı Eşiği (derece/sn):").grid(row=row, column=0, 
+                                                                         sticky=tk.W, padx=5, pady=5)
+        slow_phase_var = tk.DoubleVar()
+        slow_phase_spinbox = ttk.Spinbox(inner_frame, from_=5.0, to=50.0, increment=1.0, 
+                                      textvariable=slow_phase_var, width=5)
+        slow_phase_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["analysis.slow_phase_velocity_threshold"] = {"widget": slow_phase_spinbox, 
+                                                                     "var": slow_phase_var}
+        
+        row += 1
+        
+        # Varsayılan piksel/derece oranı
+        ttk.Label(inner_frame, text="Varsayılan Piksel/Derece Oranı:").grid(row=row, column=0, 
+                                                                      sticky=tk.W, padx=5, pady=5)
+        pixel_ratio_var = tk.DoubleVar()
+        pixel_ratio_spinbox = ttk.Spinbox(inner_frame, from_=0.01, to=1.0, increment=0.01, 
+                                       textvariable=pixel_ratio_var, width=5)
+        pixel_ratio_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["analysis.default_pixel_to_degree_ratio"] = {"widget": pixel_ratio_spinbox, 
+                                                                     "var": pixel_ratio_var}
+        
+        row += 1
+        
+        # Şaşılık açı faktörü
+        ttk.Label(inner_frame, text="Şaşılık Açı Faktörü:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        strabismus_var = tk.DoubleVar()
+        strabismus_spinbox = ttk.Spinbox(inner_frame, from_=10.0, to=200.0, increment=5.0, 
+                                      textvariable=strabismus_var, width=5)
+        strabismus_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["strabismus_degree_factor"] = {"widget": strabismus_spinbox, "var": strabismus_var}
+    
+    def create_calibration_tab(self) -> None:
+        """Kalibrasyon sekmesini oluştur"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Kalibrasyon")
+        
+        # Form alanları
+        form_frame = ttk.LabelFrame(tab, text="Kalibrasyon Ayarları")
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # İç içe grid düzeni için frame
+        inner_frame = ttk.Frame(form_frame)
+        inner_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Izgara düzeni
+        row = 0
+        
+        # Kalibrasyon noktası sayısı
+        ttk.Label(inner_frame, text="Kalibrasyon Noktası Sayısı:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        calib_points_var = tk.IntVar()
+        calib_points_spinbox = ttk.Spinbox(inner_frame, from_=3, to=9, textvariable=calib_points_var, width=5)
+        calib_points_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["calibration.calibration_points"] = {"widget": calib_points_spinbox, "var": calib_points_var}
+        
+        row += 1
+        
+        # Ekran genişliği
+        ttk.Label(inner_frame, text="Ekran Genişliği (cm):").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        screen_width_var = tk.DoubleVar()
+        screen_width_spinbox = ttk.Spinbox(inner_frame, from_=10.0, to=100.0, increment=0.5, 
+                                        textvariable=screen_width_var, width=5)
+        screen_width_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["calibration.screen_width_cm"] = {"widget": screen_width_spinbox, "var": screen_width_var}
+        
+        row += 1
+        
+        # Ekran yüksekliği
+        ttk.Label(inner_frame, text="Ekran Yüksekliği (cm):").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        screen_height_var = tk.DoubleVar()
+        screen_height_spinbox = ttk.Spinbox(inner_frame, from_=5.0, to=100.0, increment=0.5, 
+                                         textvariable=screen_height_var, width=5)
+        screen_height_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["calibration.screen_height_cm"] = {"widget": screen_height_spinbox, "var": screen_height_var}
+        
+        row += 1
+        
+        # İzleme mesafesi
+        ttk.Label(inner_frame, text="İzleme Mesafesi (cm):").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        viewing_distance_var = tk.DoubleVar()
+        viewing_distance_spinbox = ttk.Spinbox(inner_frame, from_=30.0, to=100.0, increment=5.0, 
+                                            textvariable=viewing_distance_var, width=5)
+        viewing_distance_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["calibration.viewing_distance_cm"] = {"widget": viewing_distance_spinbox, 
+                                                              "var": viewing_distance_var}
+        
+        row += 1
+        ttk.Separator(inner_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=4, 
+                                                         sticky=tk.EW, pady=10)
+        
+        row += 1
+        ttk.Button(inner_frame, text="Kalibrasyon Başlat", 
+                 command=self.start_calibration).grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+    
+    def create_signal_processing_tab(self) -> None:
+        """Sinyal işleme sekmesini oluştur"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Sinyal İşleme")
+        
+        # Form alanları
+        form_frame = ttk.LabelFrame(tab, text="Sinyal İşleme Ayarları")
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # İç içe grid düzeni için frame
+        inner_frame = ttk.Frame(form_frame)
+        inner_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Izgara düzeni
+        row = 0
+        
+        # Yumuşatma pencere boyutu
+        ttk.Label(inner_frame, text="Yumuşatma Pencere Boyutu:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        smoothing_window_var = tk.IntVar()
+        smoothing_window_spinbox = ttk.Spinbox(inner_frame, from_=3, to=15, increment=2, 
+                                            textvariable=smoothing_window_var, width=5)
+        smoothing_window_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["signal_processing.smoothing_window"] = {"widget": smoothing_window_spinbox, 
+                                                                 "var": smoothing_window_var}
+        
+        row += 1
+        
+        # Bant geçiren filtre alt frekansı
+        ttk.Label(inner_frame, text="Bant Geçiren Filtre Alt Frekansı (Hz):").grid(row=row, column=0, 
+                                                                           sticky=tk.W, padx=5, pady=5)
+        bandpass_low_var = tk.DoubleVar()
+        bandpass_low_spinbox = ttk.Spinbox(inner_frame, from_=0.1, to=5.0, increment=0.1, 
+                                        textvariable=bandpass_low_var, width=5)
+        bandpass_low_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["signal_processing.bandpass_freq_low"] = {"widget": bandpass_low_spinbox, 
+                                                                  "var": bandpass_low_var}
+        
+        row += 1
+        
+        # Bant geçiren filtre üst frekansı
+        ttk.Label(inner_frame, text="Bant Geçiren Filtre Üst Frekansı (Hz):").grid(row=row, column=0, 
+                                                                           sticky=tk.W, padx=5, pady=5)
+        bandpass_high_var = tk.DoubleVar()
+        bandpass_high_spinbox = ttk.Spinbox(inner_frame, from_=2.0, to=30.0, increment=1.0, 
+                                         textvariable=bandpass_high_var, width=5)
+        bandpass_high_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["signal_processing.bandpass_freq_high"] = {"widget": bandpass_high_spinbox, 
+                                                                   "var": bandpass_high_var}
+        
+        row += 1
+        
+        # Filtre mertebesi
+        ttk.Label(inner_frame, text="Filtre Mertebesi:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        filter_order_var = tk.IntVar()
+        filter_order_spinbox = ttk.Spinbox(inner_frame, from_=2, to=8, textvariable=filter_order_var, width=5)
+        filter_order_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["signal_processing.filter_order"] = {"widget": filter_order_spinbox, 
+                                                             "var": filter_order_var}
+        
+        row += 1
+        
+        # Tepe noktası mesafesi
+        ttk.Label(inner_frame, text="Tepe Noktası Minimum Mesafesi:").grid(row=row, column=0, 
+                                                                     sticky=tk.W, padx=5, pady=5)
+        peak_distance_var = tk.IntVar()
+        peak_distance_spinbox = ttk.Spinbox(inner_frame, from_=3, to=15, textvariable=peak_distance_var, width=5)
+        peak_distance_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["signal_processing.peak_distance"] = {"widget": peak_distance_spinbox, 
+                                                              "var": peak_distance_var}
+    
+    def create_model_tab(self) -> None:
+        """Model sekmesini oluştur"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Model")
+        
+        # Form alanları
+        form_frame = ttk.LabelFrame(tab, text="Model Ayarları")
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # İç içe grid düzeni için frame
+        inner_frame = ttk.Frame(form_frame)
+        inner_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Izgara düzeni
+        row = 0
+        
+        # ONNX model kullan
+        use_onnx_var = tk.BooleanVar()
+        use_onnx_check = ttk.Checkbutton(inner_frame, text="ONNX Model Kullan", variable=use_onnx_var)
+        use_onnx_check.grid(row=row, column=0, columnspan=3, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["model.use_onnx_model"] = {"widget": use_onnx_check, "var": use_onnx_var}
+        
+        row += 1
+        
+        # ONNX model yolu
+        ttk.Label(inner_frame, text="ONNX Model Dosya Yolu:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        model_path_var = tk.StringVar()
+        model_path_entry = ttk.Entry(inner_frame, textvariable=model_path_var, width=30)
+        model_path_entry.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        ttk.Button(inner_frame, text="Gözat", command=lambda: self.browse_file(model_path_var)).grid(row=row, column=2, 
+                                                                                              sticky=tk.W, padx=5, pady=5)
+        self.form_elements["model.onnx_model_path"] = {"widget": model_path_entry, "var": model_path_var}
+        
+        row += 1
+        
+        # GPU kullan
+        use_gpu_var = tk.BooleanVar()
+        use_gpu_check = ttk.Checkbutton(inner_frame, text="GPU Kullan", variable=use_gpu_var)
+        use_gpu_check.grid(row=row, column=0, columnspan=3, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["model.use_gpu"] = {"widget": use_gpu_check, "var": use_gpu_var}
+        
+        row += 1
+        
+        # Asenkron işleme
+        enable_async_var = tk.BooleanVar()
+        enable_async_check = ttk.Checkbutton(inner_frame, text="Asenkron İşleme Etkinleştir", 
+                                          variable=enable_async_var)
+        enable_async_check.grid(row=row, column=0, columnspan=3, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["model.enable_async_processing"] = {"widget": enable_async_check, "var": enable_async_var}
+    
+    def create_logging_tab(self) -> None:
+        """Loglama sekmesini oluştur"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Loglama")
+        
+        # Form alanları
+        form_frame = ttk.LabelFrame(tab, text="Loglama Ayarları")
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # İç içe grid düzeni için frame
+        inner_frame = ttk.Frame(form_frame)
+        inner_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Izgara düzeni
+        row = 0
+        
+        # Log seviyesi
+        ttk.Label(inner_frame, text="Log Seviyesi:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        log_level_var = tk.StringVar()
+        log_level_combo = ttk.Combobox(inner_frame, textvariable=log_level_var, state="readonly", width=10)
+        log_level_combo["values"] = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        log_level_combo.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["logging.log_level"] = {"widget": log_level_combo, "var": log_level_var}
+        
+        row += 1
+        
+        # Log dosyası
+        ttk.Label(inner_frame, text="Log Dosyası:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        log_file_var = tk.StringVar()
+        log_file_entry = ttk.Entry(inner_frame, textvariable=log_file_var, width=30)
+        log_file_entry.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["logging.log_file"] = {"widget": log_file_entry, "var": log_file_var}
+        
+        row += 1
+        
+        # Maksimum log dosyası boyutu
+        ttk.Label(inner_frame, text="Maksimum Log Dosyası Boyutu (MB):").grid(row=row, column=0, 
+                                                                      sticky=tk.W, padx=5, pady=5)
+        log_size_var = tk.DoubleVar()
+        log_size_spinbox = ttk.Spinbox(inner_frame, from_=1.0, to=100.0, increment=1.0, 
+                                     textvariable=log_size_var, width=5)
+        log_size_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["logging.max_log_size_mb"] = {"widget": log_size_spinbox, "var": log_size_var}
+        
+        row += 1
+        
+        # Yedek log dosyası sayısı
+        ttk.Label(inner_frame, text="Yedek Log Dosyası Sayısı:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        backup_count_var = tk.IntVar()
+        backup_count_spinbox = ttk.Spinbox(inner_frame, from_=0, to=10, textvariable=backup_count_var, width=5)
+        backup_count_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["logging.backup_count"] = {"widget": backup_count_spinbox, "var": backup_count_var}
+    
+    def create_ui_tab(self) -> None:
+        """UI sekmesini oluştur"""
+        tab = ttk.Frame(self.notebook)
+        self.notebook.add(tab, text="Arayüz")
+        
+        # Form alanları
+        form_frame = ttk.LabelFrame(tab, text="Kullanıcı Arayüzü Ayarları")
+        form_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # İç içe grid düzeni için frame
+        inner_frame = ttk.Frame(form_frame)
+        inner_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Izgara düzeni
+        row = 0
+        
+        # Pencere başlığı
+        ttk.Label(inner_frame, text="Pencere Başlığı:").grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+        window_title_var = tk.StringVar()
+        window_title_entry = ttk.Entry(inner_frame, textvariable=window_title_var, width=30)
+        window_title_entry.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["ui.window_title"] = {"widget": window_title_entry, "var": window_title_var}
+        
+        row += 1
+        
+        # Dashboard göster
+        enable_dashboard_var = tk.BooleanVar()
+        enable_dashboard_check = ttk.Checkbutton(inner_frame, text="Dashboard Göster", 
+                                              variable=enable_dashboard_var)
+        enable_dashboard_check.grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["ui.enable_dashboard"] = {"widget": enable_dashboard_check, "var": enable_dashboard_var}
+        
+        row += 1
+        
+        # Dashboard güncelleme aralığı
+        ttk.Label(inner_frame, text="Dashboard Güncelleme Aralığı (ms):").grid(row=row, column=0, 
+                                                                        sticky=tk.W, padx=5, pady=5)
+        dashboard_update_var = tk.IntVar()
+        dashboard_update_spinbox = ttk.Spinbox(inner_frame, from_=100, to=5000, increment=100, 
+                                            textvariable=dashboard_update_var, width=5)
+        dashboard_update_spinbox.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["ui.dashboard_update_interval_ms"] = {"widget": dashboard_update_spinbox, 
+                                                              "var": dashboard_update_var}
+        
+        row += 1
+        
+        # Isı haritası göster
+        enable_heatmap_var = tk.BooleanVar()
+        enable_heatmap_check = ttk.Checkbutton(inner_frame, text="Isı Haritası Göster", 
+                                            variable=enable_heatmap_var)
+        enable_heatmap_check.grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
+        self.form_elements["ui.enable_heatmap"] = {"widget": enable_heatmap_check, "var": enable_heatmap_var}
+        
+        row += 1
+        ttk.Separator(inner_frame, orient=tk.HORIZONTAL).grid(row=row, column=0, columnspan=2, 
+                                                         sticky=tk.EW, pady=10)
+        
+        row += 1
+        ttk.Label(inner_frame, text="Web Arayüzü Ayarları:").grid(row=row, column=0, columnspan=2, 
+                                                            sticky=tk.W, padx=5, pady=5)
+        
+        row += 1
+        ttk.Button(inner_frame, text="Web Arayüzünü Yapılandır", 
+                 command=self.configure_web_ui).grid(row=row, column=0, sticky=tk.W, padx=5, pady=5)
+    
+    def populate_form_values(self) -> None:
+        """Form alanlarını yapılandırma değerleriyle doldur"""
+        if not self.current_config:
+            return
+            
+        config_dict = self.current_config.dict()
+        
+        # Değerleri ayarla
+        for field_path, field_info in self.form_elements.items():
+            # Özel alanları atla
+            if field_path.startswith('_'):
+                continue
+                
+            # Noktalı yolu parçalara ayır
+            parts = field_path.split('.')
+            
+            # Değeri al
+            try:
+                if len(parts) == 1:
+                    # Üst düzey alan
+                    value = config_dict.get(parts[0])
+                else:
+                    # İç içe alan
+                    section = config_dict.get(parts[0], {})
+                    value = section.get(parts[1])
+                
+                # Değeri form elemanına ata
+                if value is not None:
+                    field_info["var"].set(value)
+            except Exception as e:
+                logger.error(f"Değer atama hatası ({field_path}): {str(e)}")
+        
+        # Özel alan işlemleri
+        
+        # Auto FPS işleme
+        if "camera" in config_dict and "fps" in config_dict["camera"]:
+            fps_value = config_dict["camera"]["fps"]
+            if fps_value == 0 or fps_value is None:
+                # Otomatik FPS
+                if "_auto_fps" in self.form_elements:
+                    self.form_elements["_auto_fps"]["var"].set(True)
+    
+    def collect_form_values(self) -> Dict[str, Any]:
+        """Form alanlarından değerleri topla"""
+        updates = {}
+        
+        # Tüm form alanlarını döngüle
+        for field_path, field_info in self.form_elements.items():
+            # Özel alanları atla
+            if field_path.startswith('_'):
+                continue
+                
+            # Değeri al
+            value = field_info["var"].get()
+            
+            # Alanı güncelleme listesine ekle
+            updates[field_path] = value
+        
+        # Özel alan işlemleri
+        
+        # Auto FPS işleme
+        if "_auto_fps" in self.form_elements:
+            auto_fps = self.form_elements["_auto_fps"]["var"].get()
+            if auto_fps:
+                updates["camera.fps"] = 0  # 0: otomatik
+            
+        return updates
+    
+    def load_profile(self) -> None:
+        """Seçili profili yükle"""
+        profile_name = self.profile_var.get()
+        
+        if not profile_name:
+            messagebox.showwarning("Uyarı", "Lütfen bir profil seçin")
+            return
+            
+        # Değişiklik kontrolü
+        if self.has_unsaved_changes:
+            response = messagebox.askyesnocancel("Kaydedilmemiş Değişiklikler", 
+                                               "Kaydedilmemiş değişiklikler var. Kaydetmek ister misiniz?")
+            if response is None:  # İptal
+                return
+            elif response:  # Evet
+                self.save_changes()
+        
+        # Profil "default" ise standart yapılandırmayı yükle
+        if profile_name == "default":
+            self.current_config = self.config_manager.load_config()
+        else:
+            # Belirtilen profili yükle
+            self.current_config = self.config_manager.load_profile(profile_name)
+        
+        # Form alanlarını güncelle
+        self.populate_form_values()
+        
+        # Aktif profili güncelle
+        self.active_profile = profile_name
+        
+        # Değişiklik durumunu sıfırla
+        self.has_unsaved_changes = False
+        
+        messagebox.showinfo("Bilgi", f"'{profile_name}' profili yüklendi")
+    
+    def save_profile(self) -> None:
+        """Yapılandırmayı profil olarak kaydet"""
+        profile_name = self.profile_var.get()
+        
+        if not profile_name:
+            messagebox.showwarning("Uyarı", "Lütfen bir profil seçin")
+            return
+            
+        # Değişiklikleri topla
+        updates = self.collect_form_values()
+        
+        # Yapılandırmayı güncelle
+        self.current_config = self.config_manager.update_config(updates)
+        
+        # Profil "default" ise standart yapılandırmaya kaydet
+        if profile_name == "default":
+            success = self.config_manager.save_config(self.current_config)
+        else:
+            # Profil olarak kaydet
+            success = self.config_manager.save_profile(self.current_config, profile_name)
+        
+        if success:
+            messagebox.showinfo("Bilgi", f"Yapılandırma '{profile_name}' profili olarak kaydedildi")
+            
+            # Değişiklik durumunu sıfırla
+            self.has_unsaved_changes = False
+        else:
+            messagebox.showerror("Hata", "Profil kaydedilemedi")
+    
+    def new_profile(self) -> None:
+        """Yeni profil oluştur"""
+        # Profil adı iste
+        profile_name = simpledialog.askstring("Yeni Profil", "Profil adı giriniz:", parent=self.root)
+        
+        if not profile_name:
+            return
+            
+        # Adın geçerli olup olmadığını kontrol et
+        if not profile_name.isalnum():
+            messagebox.showerror("Hata", "Geçersiz profil adı. Sadece alfanumerik karakterler kullanın.")
+            return
+            
+        # Profil zaten var mı kontrol et
+        profiles = self.config_manager.list_profiles()
+        if profile_name in profiles:
+            response = messagebox.askyesno("Uyarı", 
+                                         f"'{profile_name}' profili zaten mevcut. Üzerine yazmak ister misiniz?")
+            if not response:
+                return
+        
+        # Değişiklikleri topla
+        updates = self.collect_form_values()
+        
+        # Yapılandırmayı güncelle
+        self.current_config = self.config_manager.update_config(updates)
+        
+        # Profil olarak kaydet
+        success = self.config_manager.save_profile(self.current_config, profile_name)
+        
+        if success:
+            messagebox.showinfo("Bilgi", f"Yapılandırma '{profile_name}' profili olarak kaydedildi")
+            
+            # Profil listesini güncelle
+            self.update_profile_list()
+            
+            # Yeni profili seç
+            self.profile_var.set(profile_name)
+            self.active_profile = profile_name
+            
+            # Değişiklik durumunu sıfırla
+            self.has_unsaved_changes = False
+        else:
+            messagebox.showerror("Hata", "Profil oluşturulamadı")
+    
+    def delete_profile(self) -> None:
+        """Seçili profili sil"""
+        profile_name = self.profile_var.get()
+        
+        if not profile_name or profile_name == "default":
+            messagebox.showwarning("Uyarı", "Varsayılan profil silinemez")
+            return
+            
+        response = messagebox.askyesno("Onay", f"'{profile_name}' profilini silmek istediğinizden emin misiniz?")
+        if not response:
+            return
+            
+        # Profili sil
+        success = self.config_manager.delete_profile(profile_name)
+        
+        if success:
+            messagebox.showinfo("Bilgi", f"'{profile_name}' profili silindi")
+            
+            # Profil listesini güncelle
+            self.update_profile_list()
+            
+            # Varsayılan profili seç
+            self.profile_var.set("default")
+            self.active_profile = "default"
+            
+            # Varsayılan yapılandırmayı yükle
+            self.current_config = self.config_manager.load_config()
+            self.populate_form_values()
+        else:
+            messagebox.showerror("Hata", "Profil silinemedi")
+    
+    def apply_changes(self) -> None:
+        """Değişiklikleri uygula"""
+        # Değişiklikleri topla
+        updates = self.collect_form_values()
+        
+        # Yapılandırmayı güncelle
+        self.current_config = self.config_manager.update_config(updates)
+        
+        # Değişiklik durumunu sıfırla
+        self.has_unsaved_changes = False
+        
+        # Değişim callback'ini çağır
+        if self.on_config_change:
+            self.on_config_change(self.current_config)
+            
+        messagebox.showinfo("Bilgi", "Değişiklikler uygulandı")
+    
+    def save_changes(self) -> None:
+        """Değişiklikleri kaydet"""
+        # Değişiklikleri topla
+        updates = self.collect_form_values()
+        
+        # Yapılandırmayı güncelle
+        self.current_config = self.config_manager.update_config(updates)
+        
+        # Yapılandırmayı kaydet
+        success = self.config_manager.save_config(self.current_config)
+        
+        if success:
+            # Değişiklik durumunu sıfırla
+            self.has_unsaved_changes = False
+            
+            # Değişim callback'ini çağır
+            if self.on_config_change:
+                self.on_config_change(self.current_config)
+                
+            messagebox.showinfo("Bilgi", "Değişiklikler kaydedildi")
+        else:
+            messagebox.showerror("Hata", "Değişiklikler kaydedilemedi")
+    
+    def reset_changes(self) -> None:
+        """Değişiklikleri sıfırla"""
+        response = messagebox.askyesno("Onay", "Tüm değişiklikleri sıfırlamak istediğinizden emin misiniz?")
+        if not response:
+            return
+            
+        # Yapılandırmayı yeniden yükle
+        if self.active_profile == "default":
+            self.current_config = self.config_manager.load_config()
+        else:
+            self.current_config = self.config_manager.load_profile(self.active_profile)
+        
+        # Form alanlarını güncelle
+        self.populate_form_values()
+        
+        # Değişiklik durumunu sıfırla
+        self.has_unsaved_changes = False
+        
+        messagebox.showinfo("Bilgi", "Değişiklikler sıfırlandı")
+    
+    def export_config(self) -> None:
+        """Yapılandırmayı dışa aktar"""
+        # Dosya konumu seç
+        initial_dir = os.path.dirname(os.path.abspath(self.config_manager.user_config_path))
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".yaml",
+            filetypes=[
+                ("YAML Dosyası", "*.yaml"),
+                ("JSON Dosyası", "*.json"),
+                ("Tüm Dosyalar", "*.*")
+            ],
+            initialdir=initial_dir,
+            title="Yapılandırmayı Dışa Aktar"
+        )
+        
+        if not file_path:
+            return
+            
+        # Değişiklikleri topla
+        updates = self.collect_form_values()
+        
+        # Yapılandırmayı güncelle
+        self.current_config = self.config_manager.update_config(updates)
+        
+        # Dışa aktar
+        success = self.config_manager.export_config(self.current_config, file_path)
+        
+        if success:
+            messagebox.showinfo("Bilgi", f"Yapılandırma şu konuma dışa aktarıldı:\n{file_path}")
+        else:
+            messagebox.showerror("Hata", "Yapılandırma dışa aktarılamadı")
+    
+    def import_config(self) -> None:
+        """Yapılandırmayı içe aktar"""
+        # Değişiklik kontrolü
+        if self.has_unsaved_changes:
+            response = messagebox.askyesnocancel("Kaydedilmemiş Değişiklikler", 
+                                               "Kaydedilmemiş değişiklikler var. Kaydetmek ister misiniz?")
+            if response is None:  # İptal
+                return
+            elif response:  # Evet
+                self.save_changes()
+        
+        # Dosya seç
+        initial_dir = os.path.dirname(os.path.abspath(self.config_manager.user_config_path))
+        file_path = filedialog.askopenfilename(
+            filetypes=[
+                ("Yapılandırma Dosyaları", "*.yaml *.yml *.json"),
+                ("YAML Dosyaları", "*.yaml *.yml"),
+                ("JSON Dosyaları", "*.json"),
+                ("Tüm Dosyalar", "*.*")
+            ],
+            initialdir=initial_dir,
+            title="Yapılandırmayı İçe Aktar"
+        )
+        
+        if not file_path:
+            return
+            
+        # İçe aktar
+        imported_config = self.config_manager.import_config(file_path)
+        
+        if imported_config:
+            # Yapılandırmayı güncelle
+            self.current_config = imported_config
+            
+            # Form alanlarını güncelle
+            self.populate_form_values()
+            
+            # Değişiklik durumunu güncelle
+            self.has_unsaved_changes = True
+            
+            messagebox.showinfo("Bilgi", f"Yapılandırma içe aktarıldı:\n{file_path}")
+        else:
+            messagebox.showerror("Hata", "Yapılandırma içe aktarılamadı")
+    
+    def browse_file(self, string_var: tk.StringVar) -> None:
+        """
+        Dosya seçim dialog'unu aç
+        
+        Args:
+            string_var: Seçilen dosya yolunun atanacağı değişken
+        """
+        file_path = filedialog.askopenfilename(
+            filetypes=[
+                ("ONNX Modelleri", "*.onnx"),
+                ("Tüm Dosyalar", "*.*")
+            ],
+            title="Dosya Seç"
+        )
+        
+        if file_path:
+            string_var.set(file_path)
+    
+    def test_camera(self) -> None:
+        """Kamera bağlantısını test et"""
+        # Mevcut kamera ID'sini al
+        camera_id = self.form_elements["camera.camera_id"]["var"].get()
+        
+        # Test thread'i
+        def camera_test():
+            try:
+                import cv2
+                
+                # Kamerayı aç
+                cap = cv2.VideoCapture(camera_id)
+                
+                if not cap.isOpened():
+                    messagebox.showerror("Hata", f"Kamera açılamadı: ID={camera_id}")
+                    return
+                
+                # Bilgileri al
+                width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+                height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                fps = cap.get(cv2.CAP_PROP_FPS)
+                
+                # Görüntü al
+                ret, frame = cap.read()
+                
+                # Kamerayı kapat
+                cap.release()
+                
+                if not ret:
+                    messagebox.showerror("Hata", f"Kameradan görüntü alınamadı: ID={camera_id}")
+                    return
+                
+                # Bilgileri göster
+                messagebox.showinfo("Kamera Testi", 
+                                  f"Kamera bağlantısı başarılı!\n\n"
+                                  f"ID: {camera_id}\n"
+                                  f"Çözünürlük: {width}x{height}\n"
+                                  f"FPS: {fps}")
+                
+            except Exception as e:
+                messagebox.showerror("Hata", f"Kamera testi sırasında hata: {str(e)}")
+        
+        # Thread başlat
+        test_thread = threading.Thread(target=camera_test)
+        test_thread.daemon = True
+        test_thread.start()
+    
+    def list_cameras(self) -> None:
+        """Kullanılabilir kameraları listele"""
+        # Test thread'i
+        def camera_scan():
+            try:
+                import cv2
+                
+                available_cameras = []
+                
+                # Kameraları tara (0-9)
+                for i in range(10):
+                    cap = cv2.VideoCapture(i)
+                    if cap.isOpened():
+                        # Bilgileri al
+                        width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+                        height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                        fps = cap.get(cv2.CAP_PROP_FPS)
+                        
+                        available_cameras.append({
+                            "id": i,
+                            "width": width,
+                            "height": height,
+                            "fps": fps
+                        })
+                        
+                    # Kamerayı kapat
+                    cap.release()
+                
+                if not available_cameras:
+                    messagebox.showinfo("Kamera Listesi", "Kullanılabilir kamera bulunamadı.")
+                    return
+                
+                # Sonuçları göster
+                result = "Kullanılabilir Kameralar:\n\n"
+                for camera in available_cameras:
+                    result += f"ID: {camera['id']}\n"
+                    result += f"Çözünürlük: {camera['width']}x{camera['height']}\n"
+                    result += f"FPS: {camera['fps']}\n\n"
+                
+                messagebox.showinfo("Kamera Listesi", result)
+                
+            except Exception as e:
+                messagebox.showerror("Hata", f"Kamera taraması sırasında hata: {str(e)}")
+        
+        # Thread başlat
+        scan_thread = threading.Thread(target=camera_scan)
+        scan_thread.daemon = True
+        scan_thread.start()
+    
+    def start_calibration(self) -> None:
+        """Kalibrasyon işlemini başlat"""
+        # Bu fonksiyon, ana uygulamaya kalibrasyonu başlatma istediği gönderir
+        # Şu an için sadece bir bilgi mesajı gösterilecek
+        messagebox.showinfo("Kalibrasyon", "Kalibrasyon işlemini ana uygulamadan başlatın.")
+    
+    def configure_web_ui(self) -> None:
+        """Web arayüzü yapılandırmasını aç"""
+        # Şu an için sadece bir bilgi mesajı gösterilecek
+        messagebox.showinfo("Web Arayüzü", "Web arayüzü yapılandırması şu an için kullanılamıyor.")
+    
+    def on_close(self) -> None:
+        """Pencere kapatılırken yapılacaklar"""
+        # Değişiklik kontrolü
+        if self.has_unsaved_changes:
+            response = messagebox.askyesnocancel("Kaydedilmemiş Değişiklikler", 
+                                               "Kaydedilmemiş değişiklikler var. Kaydetmek ister misiniz?")
+            if response is None:  # İptal
+                return
+            elif response:  # Evet
+                self.save_changes()
+        
+        # Pencereyi kapat
+        self.root.destroy()
+
+
+# Basit kullanım örneği
+if __name__ == "__main__":
+    # Yapılandırma yöneticisi
+    from tkinter import simpledialog
+    config_manager = YAMLConfigManager()
+    
+    # Yapılandırma UI
+    def config_changed(new_config):
+        print("Yapılandırma değişti:", new_config)
+    
+    config_ui = ConfigUI(config_manager, on_config_change=config_changed)
+    root = config_ui.create_window()
+    root.mainloop()

@@ -740,138 +740,197 @@ def test_eye_tracker(video_source=0, output_file=None):
 if __name__ == "__main__":
     test_eye_tracker()
 
+def _prepare_data_arrays(left_positions_x, left_positions_y, right_positions_x, right_positions_y, timestamps):
+    """Veri dizilerini numpy array'lerine dönüştürür ve temel kontrolleri yapar"""
+    left_x = np.array(left_positions_x)
+    left_y = np.array(left_positions_y)
+    right_x = np.array(right_positions_x)
+    right_y = np.array(right_positions_y)
+    times = np.array(timestamps)
+    
+    if len(times) < 2:
+        return None, {"error": "Yeterli zaman verisi yok"}
+    
+    return {
+        "left_x": left_x, "left_y": left_y,
+        "right_x": right_x, "right_y": right_y,
+        "times": times
+    }, None
+
+def _calculate_velocities_and_accelerations(data_arrays):
+    """Hız ve ivme hesaplamalarını yapar"""
+    left_x, left_y = data_arrays["left_x"], data_arrays["left_y"]
+    right_x, right_y = data_arrays["right_x"], data_arrays["right_y"]
+    times = data_arrays["times"]
+    
+    dt = np.diff(times)
+    avg_dt = np.mean(dt)
+    
+    # Hızlar (piksel/saniye)
+    left_vel_x = np.diff(left_x) / dt
+    left_vel_y = np.diff(left_y) / dt
+    right_vel_x = np.diff(right_x) / dt
+    right_vel_y = np.diff(right_y) / dt
+    
+    # İvmeler (piksel/saniye^2)
+    if len(left_vel_x) >= 2:
+        left_acc_x = np.diff(left_vel_x) / dt[:-1]
+        left_acc_y = np.diff(left_vel_y) / dt[:-1]
+        right_acc_x = np.diff(right_vel_x) / dt[:-1]
+        right_acc_y = np.diff(right_vel_y) / dt[:-1]
+    else:
+        left_acc_x = np.array([0.0])
+        left_acc_y = np.array([0.0])
+        right_acc_x = np.array([0.0])
+        right_acc_y = np.array([0.0])
+    
+    return {
+        "velocities": {
+            "left_vel_x": left_vel_x, "left_vel_y": left_vel_y,
+            "right_vel_x": right_vel_x, "right_vel_y": right_vel_y
+        },
+        "accelerations": {
+            "left_acc_x": left_acc_x, "left_acc_y": left_acc_y,
+            "right_acc_x": right_acc_x, "right_acc_y": right_acc_y
+        },
+        "avg_dt": avg_dt
+    }
+
+def _calculate_fft_analysis(data_arrays, avg_dt):
+    """FFT analizi yapar"""
+    def calculate_fft(signal):
+        if len(signal) < 4:
+            return {"freqs": np.array([]), "power": np.array([])}
+        
+        signal_detrended = signal - np.mean(signal)
+        window = np.hanning(len(signal_detrended))
+        windowed_signal = signal_detrended * window
+        
+        n = len(windowed_signal)
+        fft_result = np.fft.rfft(windowed_signal)
+        power = np.abs(fft_result)**2 / n
+        freqs = np.fft.rfftfreq(n, d=avg_dt)
+        
+        return {"freqs": freqs, "power": power}
+    
+    return {
+        "left_x": calculate_fft(data_arrays["left_x"]),
+        "left_y": calculate_fft(data_arrays["left_y"]),
+        "right_x": calculate_fft(data_arrays["right_x"]),
+        "right_y": calculate_fft(data_arrays["right_y"])
+    }
+
+def _calculate_statistical_features(data_arrays, velocities):
+    """İstatistiksel özellikleri hesaplar"""
+    def get_position_stats(arr):
+        if len(arr) == 0:
+            return {"mean": 0.0, "std": 0.0, "min": 0.0, "max": 0.0, "range": 0.0}
+        return {
+            "mean": float(np.mean(arr)),
+            "std": float(np.std(arr)),
+            "min": float(np.min(arr)),
+            "max": float(np.max(arr)),
+            "range": float(np.ptp(arr))
+        }
+    
+    def get_velocity_stats(arr):
+        if len(arr) == 0:
+            return {"mean": 0.0, "std": 0.0, "max_abs": 0.0}
+        return {
+            "mean": float(np.mean(arr)),
+            "std": float(np.std(arr)),
+            "max_abs": float(np.max(np.abs(arr)))
+        }
+    
+    return {
+        "positions": {
+            "left_x": get_position_stats(data_arrays["left_x"]),
+            "left_y": get_position_stats(data_arrays["left_y"]),
+            "right_x": get_position_stats(data_arrays["right_x"]),
+            "right_y": get_position_stats(data_arrays["right_y"])
+        },
+        "velocities": {
+            "left_x": get_velocity_stats(velocities["left_vel_x"]),
+            "left_y": get_velocity_stats(velocities["left_vel_y"]),
+            "right_x": get_velocity_stats(velocities["right_vel_x"]),
+            "right_y": get_velocity_stats(velocities["right_vel_y"])
+        }
+    }
+
+def _calculate_dominant_frequencies(fft_results):
+    """Baskın frekansları hesaplar"""
+    def find_dominant_freq(freqs, power):
+        if len(freqs) == 0 or len(power) == 0:
+            return 0.0, 0.0
+        max_idx = np.argmax(power)
+        if max_idx < len(freqs):
+            return float(freqs[max_idx]), float(power[max_idx])
+        return 0.0, 0.0
+    
+    def find_dominant_in_range(freqs, power, min_freq=2.0, max_freq=10.0):
+        if len(freqs) == 0 or len(power) == 0:
+            return 0.0, 0.0
+        
+        mask = (freqs >= min_freq) & (freqs <= max_freq)
+        filtered_freqs = freqs[mask]
+        filtered_power = power[mask]
+        
+        if len(filtered_freqs) == 0:
+            return 0.0, 0.0
+        
+        max_idx = np.argmax(filtered_power)
+        if max_idx < len(filtered_freqs):
+            return float(filtered_freqs[max_idx]), float(filtered_power[max_idx])
+        return 0.0, 0.0
+    
+    dominant_freqs = {}
+    nistagmus_range = {}
+    
+    for eye_axis in ["left_x", "left_y", "right_x", "right_y"]:
+        if eye_axis in fft_results and len(fft_results[eye_axis]["freqs"]) > 0:
+            freqs = fft_results[eye_axis]["freqs"]
+            power = fft_results[eye_axis]["power"]
+            
+            dom_freq, dom_power = find_dominant_freq(freqs, power)
+            nyst_freq, nyst_power = find_dominant_in_range(freqs, power)
+            
+            dominant_freqs[eye_axis] = {"freq": dom_freq, "power": dom_power}
+            nistagmus_range[eye_axis] = {"freq": nyst_freq, "power": nyst_power}
+    
+    return {"dominant": dominant_freqs, "nistagmus_range": nistagmus_range}
+
 def extract_features_from_video(left_positions_x, left_positions_y, 
                                right_positions_x, right_positions_y, 
                                timestamps):
     """
-    Video verisinden göz hareketi özelliklerini çıkarır
-    
-    Args:
-        left_positions_x: Sol göz x koordinatları listesi
-        left_positions_y: Sol göz y koordinatları listesi
-        right_positions_x: Sağ göz x koordinatları listesi
-        right_positions_y: Sağ göz y koordinatları listesi
-        timestamps: Zaman damgaları listesi
-        
-    Returns:
-        dict: Çıkarılan özellikler
+    Video verisinden göz hareketi özelliklerini çıkarır (Refaktör edilmiş)
     """
     try:
-        # Veri dizilerini numpy array'lerine dönüştür
-        left_x = np.array(left_positions_x)
-        left_y = np.array(left_positions_y)
-        right_x = np.array(right_positions_x)
-        right_y = np.array(right_positions_y)
-        times = np.array(timestamps)
+        # 1. Veri hazırlığı
+        data_arrays, error = _prepare_data_arrays(
+            left_positions_x, left_positions_y, 
+            right_positions_x, right_positions_y, timestamps
+        )
+        if error:
+            return error
         
-        # Zaman farkları
-        if len(times) < 2:
-            return {"error": "Yeterli zaman verisi yok"}
-            
-        dt = np.diff(times)
-        avg_dt = np.mean(dt)
+        # 2. Hız ve ivme hesaplamaları
+        motion_data = _calculate_velocities_and_accelerations(data_arrays)
         
-        # Hızlar (piksel/saniye)
-        left_vel_x = np.diff(left_x) / dt
-        left_vel_y = np.diff(left_y) / dt
-        right_vel_x = np.diff(right_x) / dt
-        right_vel_y = np.diff(right_y) / dt
+        # 3. FFT analizi
+        fft_results = _calculate_fft_analysis(data_arrays, motion_data["avg_dt"])
         
-        # İvmeler (piksel/saniye^2)
-        if len(left_vel_x) >= 2:
-            left_acc_x = np.diff(left_vel_x) / dt[:-1]
-            left_acc_y = np.diff(left_vel_y) / dt[:-1]
-            right_acc_x = np.diff(right_vel_x) / dt[:-1]
-            right_acc_y = np.diff(right_vel_y) / dt[:-1]
-        else:
-            left_acc_x = np.array([0.0])
-            left_acc_y = np.array([0.0])
-            right_acc_x = np.array([0.0])
-            right_acc_y = np.array([0.0])
+        # 4. İstatistiksel özellikler
+        statistical_features = _calculate_statistical_features(
+            data_arrays, motion_data["velocities"]
+        )
         
-        # Frekans analizi (FFT)
-        sample_rate = 1.0 / avg_dt  # Örnek hızı (Hz)
+        # 5. Temel bilgiler
+        sample_rate = 1.0 / motion_data["avg_dt"]
+        times = data_arrays["times"]
         
-        # Yatay hareket analizi (FFT)
-        def calculate_fft(signal):
-            if len(signal) < 4:  # En az 4 veri noktası gerekli
-                return {"freqs": np.array([]), "power": np.array([])}
-                
-            # Trendi kaldır
-            signal_detrended = signal - np.mean(signal)
-            
-            # Pencere fonksiyonu uygula (Hanning window)
-            window = np.hanning(len(signal_detrended))
-            windowed_signal = signal_detrended * window
-            
-            # FFT uygula
-            n = len(windowed_signal)
-            fft_result = np.fft.rfft(windowed_signal)
-            power = np.abs(fft_result)**2 / n
-            freqs = np.fft.rfftfreq(n, d=avg_dt)
-            
-            return {"freqs": freqs, "power": power}
-        
-        # Her iki göz için FFT hesapla
-        left_x_fft = calculate_fft(left_x)
-        left_y_fft = calculate_fft(left_y)
-        right_x_fft = calculate_fft(right_x)
-        right_y_fft = calculate_fft(right_y)
-        
-        # İstatistiksel özellikler
         features = {
-            "positions": {
-                "left_x": {
-                    "mean": float(np.mean(left_x)) if len(left_x) > 0 else 0.0,
-                    "std": float(np.std(left_x)) if len(left_x) > 0 else 0.0,
-                    "min": float(np.min(left_x)) if len(left_x) > 0 else 0.0,
-                    "max": float(np.max(left_x)) if len(left_x) > 0 else 0.0,
-                    "range": float(np.ptp(left_x)) if len(left_x) > 0 else 0.0,
-                },
-                "left_y": {
-                    "mean": float(np.mean(left_y)) if len(left_y) > 0 else 0.0,
-                    "std": float(np.std(left_y)) if len(left_y) > 0 else 0.0,
-                    "min": float(np.min(left_y)) if len(left_y) > 0 else 0.0,
-                    "max": float(np.max(left_y)) if len(left_y) > 0 else 0.0,
-                    "range": float(np.ptp(left_y)) if len(left_y) > 0 else 0.0,
-                },
-                "right_x": {
-                    "mean": float(np.mean(right_x)) if len(right_x) > 0 else 0.0,
-                    "std": float(np.std(right_x)) if len(right_x) > 0 else 0.0,
-                    "min": float(np.min(right_x)) if len(right_x) > 0 else 0.0,
-                    "max": float(np.max(right_x)) if len(right_x) > 0 else 0.0,
-                    "range": float(np.ptp(right_x)) if len(right_x) > 0 else 0.0,
-                },
-                "right_y": {
-                    "mean": float(np.mean(right_y)) if len(right_y) > 0 else 0.0,
-                    "std": float(np.std(right_y)) if len(right_y) > 0 else 0.0,
-                    "min": float(np.min(right_y)) if len(right_y) > 0 else 0.0,
-                    "max": float(np.max(right_y)) if len(right_y) > 0 else 0.0,
-                    "range": float(np.ptp(right_y)) if len(right_y) > 0 else 0.0,
-                },
-            },
-            "velocities": {
-                "left_x": {
-                    "mean": float(np.mean(left_vel_x)) if len(left_vel_x) > 0 else 0.0,
-                    "std": float(np.std(left_vel_x)) if len(left_vel_x) > 0 else 0.0,
-                    "max_abs": float(np.max(np.abs(left_vel_x))) if len(left_vel_x) > 0 else 0.0,
-                },
-                "left_y": {
-                    "mean": float(np.mean(left_vel_y)) if len(left_vel_y) > 0 else 0.0,
-                    "std": float(np.std(left_vel_y)) if len(left_vel_y) > 0 else 0.0,
-                    "max_abs": float(np.max(np.abs(left_vel_y))) if len(left_vel_y) > 0 else 0.0,
-                },
-                "right_x": {
-                    "mean": float(np.mean(right_vel_x)) if len(right_vel_x) > 0 else 0.0,
-                    "std": float(np.std(right_vel_x)) if len(right_vel_x) > 0 else 0.0,
-                    "max_abs": float(np.max(np.abs(right_vel_x))) if len(right_vel_x) > 0 else 0.0,
-                },
-                "right_y": {
-                    "mean": float(np.mean(right_vel_y)) if len(right_vel_y) > 0 else 0.0,
-                    "std": float(np.std(right_vel_y)) if len(right_vel_y) > 0 else 0.0,
-                    "max_abs": float(np.max(np.abs(right_vel_y))) if len(right_vel_y) > 0 else 0.0,
-                },
-            },
+            **statistical_features,
             "frequency_info": {
                 "sample_rate": float(sample_rate),
                 "duration": float(times[-1] - times[0]) if len(times) >= 2 else 0.0,
@@ -879,110 +938,44 @@ def extract_features_from_video(left_positions_x, left_positions_y,
             },
             "raw_data": {
                 "timestamps": times.tolist(),
-                "left_x": left_x.tolist(),
-                "left_y": left_y.tolist(),
-                "right_x": right_x.tolist(),
-                "right_y": right_y.tolist(),
+                "left_x": data_arrays["left_x"].tolist(),
+                "left_y": data_arrays["left_y"].tolist(),
+                "right_x": data_arrays["right_x"].tolist(),
+                "right_y": data_arrays["right_y"].tolist(),
             }
         }
         
-        # FFT sonuçlarını ekle (boş değilse)
-        if len(left_x_fft["freqs"]) > 0:
+        # 6. FFT sonuçlarını ekle (boş değilse)
+        if any(len(fft_results[axis]["freqs"]) > 0 for axis in fft_results):
             features["frequency_analysis"] = {
-                "left_x": {
-                    "freqs": left_x_fft["freqs"].tolist(), 
-                    "power": left_x_fft["power"].tolist()
-                },
-                "left_y": {
-                    "freqs": left_y_fft["freqs"].tolist(), 
-                    "power": left_y_fft["power"].tolist()
-                },
-                "right_x": {
-                    "freqs": right_x_fft["freqs"].tolist(), 
-                    "power": right_x_fft["power"].tolist()
-                },
-                "right_y": {
-                    "freqs": right_y_fft["freqs"].tolist(), 
-                    "power": right_y_fft["power"].tolist()
+                axis: {
+                    "freqs": fft_results[axis]["freqs"].tolist(), 
+                    "power": fft_results[axis]["power"].tolist()
                 }
+                for axis in fft_results if len(fft_results[axis]["freqs"]) > 0
             }
             
-            # Baskın frekansları bul
-            def find_dominant_freq(freqs, power):
-                if len(freqs) == 0 or len(power) == 0:
-                    return 0.0, 0.0
-                    
-                # En yüksek güçlü frekans
-                max_idx = np.argmax(power)
-                if max_idx < len(freqs):
-                    return float(freqs[max_idx]), float(power[max_idx])
-                return 0.0, 0.0
+            # 7. Baskın frekansları hesapla
+            freq_analysis = _calculate_dominant_frequencies(fft_results)
+            features["dominant_frequencies"] = freq_analysis["dominant"]
+            if freq_analysis["nistagmus_range"]:
+                features["dominant_frequencies"]["nistagmus_range"] = freq_analysis["nistagmus_range"]
             
-            # Sadece 2-10 Hz arasındaki frekansları dikkate al (nistagmus aralığı)
-            def find_dominant_in_range(freqs, power, min_freq=2.0, max_freq=10.0):
-                if len(freqs) == 0 or len(power) == 0:
-                    return 0.0, 0.0
-                
-                # Frekans aralığını filtrele
-                mask = (freqs >= min_freq) & (freqs <= max_freq)
-                filtered_freqs = freqs[mask]
-                filtered_power = power[mask]
-                
-                if len(filtered_freqs) == 0:
-                    return 0.0, 0.0
-                
-                # En yüksek güçlü frekans
-                max_idx = np.argmax(filtered_power)
-                if max_idx < len(filtered_freqs):
-                    return float(filtered_freqs[max_idx]), float(filtered_power[max_idx])
-                return 0.0, 0.0
-            
-            # Baskın frekansları hesapla
-            left_x_dom_freq, left_x_dom_power = find_dominant_freq(left_x_fft["freqs"], left_x_fft["power"])
-            left_y_dom_freq, left_y_dom_power = find_dominant_freq(left_y_fft["freqs"], left_y_fft["power"])
-            right_x_dom_freq, right_x_dom_power = find_dominant_freq(right_x_fft["freqs"], right_x_fft["power"])
-            right_y_dom_freq, right_y_dom_power = find_dominant_freq(right_y_fft["freqs"], right_y_fft["power"])
-            
-            # Nistagmus frekans aralığındaki baskın frekanslar
-            left_x_nyst_freq, left_x_nyst_power = find_dominant_in_range(left_x_fft["freqs"], left_x_fft["power"])
-            left_y_nyst_freq, left_y_nyst_power = find_dominant_in_range(left_y_fft["freqs"], left_y_fft["power"])
-            right_x_nyst_freq, right_x_nyst_power = find_dominant_in_range(right_x_fft["freqs"], right_x_fft["power"])
-            right_y_nyst_freq, right_y_nyst_power = find_dominant_in_range(right_y_fft["freqs"], right_y_fft["power"])
-            
-            # İyileştirilmiş FFT tabanlı nistagmus frekansı hesaplama
-            # Geçici EyeTracker instance'ı oluştur sadece compute_nystagmus_frequency için
+            # 8. İyileştirilmiş FFT analizi
             temp_tracker = EyeTracker()
+            improved_fft = {
+                "left_x": temp_tracker.compute_nystagmus_frequency(data_arrays["left_x"].tolist(), sample_rate),
+                "left_y": temp_tracker.compute_nystagmus_frequency(data_arrays["left_y"].tolist(), sample_rate),
+                "right_x": temp_tracker.compute_nystagmus_frequency(data_arrays["right_x"].tolist(), sample_rate),
+                "right_y": temp_tracker.compute_nystagmus_frequency(data_arrays["right_y"].tolist(), sample_rate),
+            }
             
-            # Yeni FFT tabanlı frekans hesaplama
-            improved_left_x_freq = temp_tracker.compute_nystagmus_frequency(left_x.tolist(), sample_rate)
-            improved_left_y_freq = temp_tracker.compute_nystagmus_frequency(left_y.tolist(), sample_rate)
-            improved_right_x_freq = temp_tracker.compute_nystagmus_frequency(right_x.tolist(), sample_rate)
-            improved_right_y_freq = temp_tracker.compute_nystagmus_frequency(right_y.tolist(), sample_rate)
-            
-            # Sonuçları ekle
-            features["dominant_frequencies"] = {
-                "left_x": {"freq": left_x_dom_freq, "power": left_x_dom_power},
-                "left_y": {"freq": left_y_dom_freq, "power": left_y_dom_power},
-                "right_x": {"freq": right_x_dom_freq, "power": right_x_dom_power},
-                "right_y": {"freq": right_y_dom_freq, "power": right_y_dom_power},
-                "nistagmus_range": {
-                    "left_x": {"freq": left_x_nyst_freq, "power": left_x_nyst_power},
-                    "left_y": {"freq": left_y_nyst_freq, "power": left_y_nyst_power},
-                    "right_x": {"freq": right_x_nyst_freq, "power": right_x_nyst_power},
-                    "right_y": {"freq": right_y_nyst_freq, "power": right_y_nyst_power},
-                },
-                # Yeni iyileştirilmiş FFT tabanlı frekans hesaplama sonuçları
-                "improved_fft": {
-                    "left_x": improved_left_x_freq,
-                    "left_y": improved_left_y_freq,
-                    "right_x": improved_right_x_freq,
-                    "right_y": improved_right_y_freq,
-                    "left_dominant": max(improved_left_x_freq, improved_left_y_freq),
-                    "right_dominant": max(improved_right_x_freq, improved_right_y_freq),
-                    "overall_dominant": max(improved_left_x_freq, improved_left_y_freq, 
-                                          improved_right_x_freq, improved_right_y_freq),
-                    "method": "enhanced_fft_with_filtering"
-                }
+            features["dominant_frequencies"]["improved_fft"] = {
+                **improved_fft,
+                "left_dominant": max(improved_fft["left_x"], improved_fft["left_y"]),
+                "right_dominant": max(improved_fft["right_x"], improved_fft["right_y"]),
+                "overall_dominant": max(improved_fft.values()),
+                "method": "enhanced_fft_with_filtering"
             }
         
         return features

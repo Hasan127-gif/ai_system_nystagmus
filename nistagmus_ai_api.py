@@ -116,9 +116,9 @@ app = FastAPI(
 # Middleware konfigürasyonu
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Production'da spesifik domain'ler
+    allow_origins=["http://localhost:3000", "http://localhost:8080", "https://yourdomain.com"],  # Production'da spesifik domain'ler
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 

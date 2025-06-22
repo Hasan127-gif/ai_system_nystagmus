@@ -91,12 +91,10 @@ app = FastAPI(
 # CORS ayarları
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Tüm originlere izin ver (production için sınırlandırın)
+    allow_origins=["http://localhost:3000", "http://localhost:8080", "https://yourdomain.com"],  # Production için spesifik domainler
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*", "Content-Type", "Authorization", "X-API-Key"],
-    expose_headers=["*"],
-    max_age=600,  # 10 dakika önbellekleme
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
 )
 
 # API Key güvenliği (opsiyonel)

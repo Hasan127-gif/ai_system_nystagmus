@@ -26,11 +26,10 @@ app = FastAPI(
 # CORS middleware - tüm kaynaklara izin ver
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Tüm kaynaklara izin ver (test amaçlı)
+    allow_origins=["http://localhost:3000", "http://localhost:8080"],  # Test ortamı için spesifik domainler
     allow_credentials=True,
-    allow_methods=["*"],  # Tüm HTTP metotlarına izin ver
-    allow_headers=["*"],  # Tüm başlıklara izin ver
-    expose_headers=["*"]
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 # API başlangıç zamanı

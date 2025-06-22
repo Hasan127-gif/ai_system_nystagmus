@@ -19,6 +19,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 from imblearn.over_sampling import SMOTE
+import joblib
 
 # Loglama ayarları
 logging.basicConfig(level=logging.INFO, 
@@ -312,9 +313,8 @@ class SimpleModelTrainer:
         # Model dizinini oluştur
         os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
         
-        # Modeli kaydet
-        with open(self.model_path, 'wb') as f:
-            pickle.dump(self.model, f)
+        # Güvenli model kaydetme (pickle yerine joblib kullan)
+        joblib.dump(self.model, self.model_path)
             
         # Yapılandırmayı kaydet
         with open(self.config_path, 'w') as f:

@@ -24,8 +24,10 @@ detector.py.temp_backup
 *.h5
 *.pt
 *.ckpt
-# Test videoları (çok büyükse)
+# Test videoları (çok büyükse) - Git LFS ile takip ediliyor
 *.mp4
+# Test videolarını dahil et
+!data/test_videos/**/*.mp4
 test_historical_*.mp4
 test_clinical_video.mp4
 
